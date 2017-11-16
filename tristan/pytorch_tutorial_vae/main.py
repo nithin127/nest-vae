@@ -7,10 +7,14 @@ from torchvision import transforms
 import torchvision
 
 # MNIST dataset
-dataset = datasets.MNIST(root='./data',
-                         train=True,
-                         transform=transforms.ToTensor(),
-                         download=True)
+dataset = datasets.FashionMNIST(root='./data/fashion-mnist',
+                                train=True,
+                                transform=transforms.ToTensor(),
+                                download=True)
+# dataset = datasets.MNIST(root='./data/mnist',
+#                          train=True,
+#                          transform=transforms.ToTensor(),
+#                          download=True)
 
 # Data loader
 data_loader = torch.utils.data.DataLoader(dataset=dataset,
