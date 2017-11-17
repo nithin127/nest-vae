@@ -2,9 +2,11 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from torchvision import datasets
-from torchvision import transforms
+
 import torchvision
+from torchvision import datasets, transforms
+
+from tensorboardX import SummaryWriter
 
 # MNIST dataset
 dataset = datasets.FashionMNIST(root='./data/fashion-mnist',
@@ -66,10 +68,12 @@ optimizer = torch.optim.Adam(vae.parameters(), lr=0.001)
 iter_per_epoch = len(data_loader)
 data_iter = iter(data_loader)
 
+writer = SummaryWriter('./.logs/vae')
+
 # fixed inputs for debugging
-fixed_z = to_var(torch.randn(100, 20))
 fixed_x, _ = next(data_iter)
-torchvision.utils.save_image(fixed_x.cpu(), './data/real_images.png')
+fixed_grid = torchvision.utils.make_grid(fixed_x, normalize=True, scale_each=True)
+writer.add_image('vae/original', fixed_grid, 0)
 fixed_x = to_var(fixed_x.view(fixed_x.size(0), -1))
 
 for epoch in range(50):
@@ -88,6 +92,8 @@ for epoch in range(50):
         optimizer.zero_grad()
         total_loss.backward()
         optimizer.step()
+
+        writer.add_scalar('loss', total_loss[0], epoch * iter_per_epoch + i)
         
         if i % 100 == 0:
             print ("Epoch[%d/%d], Step [%d/%d], Total Loss: %.4f, "
@@ -98,5 +104,5 @@ for epoch in range(50):
     # Save the reconstructed images
     reconst_images, _, _ = vae(fixed_x)
     reconst_images = reconst_images.view(reconst_images.size(0), 1, 28, 28)
-    torchvision.utils.save_image(reconst_images.data.cpu(), 
-        './data/reconst_images_%d.png' %(epoch+1))
+    reconst_grid = torchvision.utils.make_grid(reconst_images.data, normalize=True, scale_each=True)
+    writer.add_image('vae/reconstruction', reconst_grid, epoch)
