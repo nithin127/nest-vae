@@ -106,6 +106,9 @@ venv.bak/
 # Temporary folders
 tmp/
 
+# Tensorboard
+.logs/
+
 # Data folder
 data/*/*
 !data/*/README.md
