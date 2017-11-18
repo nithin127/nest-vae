@@ -108,6 +108,7 @@ tmp/
 
 # Tensorboard
 .logs/
+.saves/
 
 # Data folder
 data/*/*

@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -27,6 +28,7 @@ def to_var(x):
     if torch.cuda.is_available():
         x = x.cuda()
     return Variable(x)
+
 
 # VAE model
 class VAE(nn.Module):
@@ -120,3 +122,18 @@ for epoch in range(50):
     reconst_grid = torchvision.utils.make_grid(F.sigmoid(reconst_logits).data,
         normalize=True, scale_each=True)
     writer.add_image('vae/reconstruction', reconst_grid, epoch)
+
+    # Save the checkpoint
+    state = {
+        'epoch': epoch + 1,
+        'model': vae.state_dict(),
+        'optimizer': optimizer.state_dict(),
+        'loss': {
+            'total': total_loss.data[0],
+            'reconstruction': reconst_loss.data[0],
+            'kl_divergence': kl_divergence.data[0]
+        }
+    }
+    if not os.path.exists('./.saves/vae/'):
+        os.makedirs('./.saves/vae/')
+    torch.save(state, './.saves/vae/vae_%d.ckpt' % (epoch + 1,))
