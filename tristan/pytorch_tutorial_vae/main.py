@@ -109,7 +109,7 @@ for epoch in range(50):
         total_loss.backward()
         optimizer.step()
 
-        writer.add_scalar('loss', total_loss[0], epoch * iter_per_epoch + i)
+        writer.add_scalar('loss', total_loss.data[0], epoch * iter_per_epoch + i)
         
         if i % 100 == 0:
             print ("Epoch[%d/%d], Step [%d/%d], Total Loss: %.4f, "
