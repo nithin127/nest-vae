@@ -34,6 +34,7 @@ def to_var(x):
 class VAE(nn.Module):
     def __init__(self, image_size=784, h_dim=400, z_dim=20):
         super(VAE, self).__init__()
+        self.z_dim = z_dim
         self.encoder = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=4, stride=2),
             nn.LeakyReLU(0.2),
@@ -68,7 +69,7 @@ class VAE(nn.Module):
         mu, log_var = self.encoder_mean(h), self.encoder_logvar(h)
 
         z = self.reparametrize(mu, log_var)
-        z = z.view(h.size(0), 20, 1, 1)
+        z = z.view(h.size(0), self.z_dim, 1, 1)
         logits = self.decoder(z)
 
         return logits, mu, log_var
@@ -77,19 +78,21 @@ class VAE(nn.Module):
         return self.decoder(z)
     
 vae = VAE()
+beta_ = Variable(torch.FloatTensor(vae.z_dim).fill_(-1.), requires_grad=True)
 
 if torch.cuda.is_available():
     vae.cuda()
-    
-optimizer = torch.optim.Adam(vae.parameters(), lr=0.001)
+    beta_ = beta_.cuda()
+
+optimizer = torch.optim.Adam(list(vae.parameters()) + [beta_], lr=0.001)
 iter_per_epoch = len(data_loader)
 
-writer = SummaryWriter('./.logs/vae')
+writer = SummaryWriter('./.logs/beta-vae')
 
 # fixed inputs for debugging
 fixed_x, _ = next(iter(data_loader))
 fixed_grid = torchvision.utils.make_grid(fixed_x, normalize=True, scale_each=True)
-writer.add_image('vae/original', fixed_grid, 0)
+writer.add_image('beta-vae/original', fixed_grid, 0)
 fixed_x = to_var(fixed_x)
 
 for epoch in range(50):
@@ -101,7 +104,9 @@ for epoch in range(50):
         # Compute reconstruction loss and kl divergence
         # For kl_divergence, see Appendix B in the paper or http://yunjey47.tistory.com/43
         reconst_loss = F.binary_cross_entropy_with_logits(logits, images, size_average=False)
-        kl_divergence = torch.sum(0.5 * (mu ** 2 + torch.exp(log_var) - log_var - 1))
+        beta = 1. + F.softplus(beta_)
+        kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) - log_var - 1),
+            beta.unsqueeze(1)))
         
         # Backprop + Optimize
         total_loss = reconst_loss + kl_divergence
@@ -110,6 +115,7 @@ for epoch in range(50):
         optimizer.step()
 
         writer.add_scalar('loss', total_loss.data[0], epoch * iter_per_epoch + i)
+        writer.add_histogram('beta', beta.data, epoch * iter_per_epoch + i)
         
         if i % 100 == 0:
             print ("Epoch[%d/%d], Step [%d/%d], Total Loss: %.4f, "
@@ -121,7 +127,7 @@ for epoch in range(50):
     reconst_logits, _, _ = vae(fixed_x)
     reconst_grid = torchvision.utils.make_grid(F.sigmoid(reconst_logits).data,
         normalize=True, scale_each=True)
-    writer.add_image('vae/reconstruction', reconst_grid, epoch)
+    writer.add_image('beta-vae/reconstruction', reconst_grid, epoch)
 
     # Save the checkpoint
     state = {
@@ -134,6 +140,6 @@ for epoch in range(50):
             'kl_divergence': kl_divergence.data[0]
         }
     }
-    if not os.path.exists('./.saves/vae/'):
-        os.makedirs('./.saves/vae/')
-    torch.save(state, './.saves/vae/vae_%d.ckpt' % (epoch + 1,))
+    if not os.path.exists('./.saves/beta-vae/'):
+        os.makedirs('./.saves/beta-vae/')
+    torch.save(state, './.saves/beta-vae/beta-vae_%d.ckpt' % (epoch + 1,))
