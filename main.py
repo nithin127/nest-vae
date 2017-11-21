@@ -4,6 +4,12 @@ import torch
 import torch.utils.data
 import torch.nn as nn
 import torch.optim as optim
+import numpy as np
+import matplotlib
+matplotlib.use("agg")
+import matplotlib.pyplot as plt
+import torchvision
+import torchvision.transforms as transforms
 from torch.autograd import Variable
 from torchvision import datasets, transforms
 
@@ -88,10 +94,16 @@ def loss_function(recon_x, x, mu, logvar):
     # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
     # https://arxiv.org/abs/1312.6114
     # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
-    KLD_element = mu.pow(2).add_(logvar.exp()).mul_(-1).add_(1).add_(logvar)
-    KLD = torch.sum(KLD_element).mul_(-0.5)
+    #print("logvar size is")
+    #print(logvar.size())
+    #print("mu shape is")
+    #print(mu.size())
+    #KLD_element = (mu.pow(2).add_(logvar.exp())).mul_(-1).add_(1).add_(logvar)
+    KLD_element2 = (mu.pow(2).add_(logvar.exp()).add_(1/logvar.exp())).mul(-1).add(1)
+    KLD = torch.sum(KLD_element2).mul_(-0.5)
 
     return BCE + KLD
+    #return BCE
 
 
 optimizer = optim.Adam(model.parameters(), lr=1e-3)
@@ -102,6 +114,7 @@ def train(epoch):
     train_loss = 0
     for batch_idx, (data, _) in enumerate(train_loader):
         data = Variable(data)
+        #print(data.sum())
         if args.cuda:
             data = data.cuda()
         optimizer.zero_grad()
@@ -120,6 +133,12 @@ def train(epoch):
           epoch, train_loss / len(train_loader.dataset)))
 
 
+#def imshow(img):
+#    img = img / 2 + 0.5     # unnormalize
+#    #npimg = img.numpy()
+#    plt.imshow(img)
+
+
 def test(epoch):
     model.eval()
     test_loss = 0
@@ -128,9 +147,25 @@ def test(epoch):
             data = data.cuda()
         data = Variable(data, volatile=True)
         recon_batch, mu, logvar = model(data)
+        #print(recon_batch.size())
+        #for i in range(128):
+        #x=Variable(torch.arange(28,28))
+        #x = recon_batch.resize(128,28,28)
+        x = recon_batch.view(-1,28,28)
+        print(x.size())
+        tester = x[0,:,:]
+        #print(tester)
+        tester_img = (tester.data).cpu().numpy()
+        #iprint(tester_img)
+        plt.imshow(tester_img)
+        plt.show()
+        #cv2.imshow("lol",tester_img)
         test_loss += loss_function(recon_batch, data, mu, logvar).data[0]
 
     test_loss /= len(test_loader.dataset)
+    plt.imshow(tester_img, interpolation='nearest')
+
+    #imshow(tester_img)
     print('====> Test set loss: {:.4f}'.format(test_loss))
 
 
