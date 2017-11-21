@@ -113,3 +113,6 @@ tmp/
 # Data folder
 data/*/*
 !data/*/README.md
+
+# Slurm
+*.out
