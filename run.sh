@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # Source bashrc
-source .bashrc
+source $HOME/.bashrc
 
 # Activate the environment
 source activate deleutri

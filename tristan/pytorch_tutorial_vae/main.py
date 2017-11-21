@@ -78,11 +78,12 @@ class VAE(nn.Module):
         return self.decoder(z)
     
 vae = VAE()
-beta_ = Variable(torch.FloatTensor(vae.z_dim).fill_(-1.), requires_grad=True)
 
 if torch.cuda.is_available():
     vae.cuda()
-    beta_ = beta_.cuda()
+    beta_ = Variable(torch.cuda.FloatTensor(vae.z_dim).fill_(-1.), requires_grad=True)
+else:
+    beta_ = Variable(torch.FloatTensor(vae.z_dim).fill_(-1.), requires_grad=True)
 
 optimizer = torch.optim.Adam(list(vae.parameters()) + [beta_], lr=0.001)
 iter_per_epoch = len(data_loader)
