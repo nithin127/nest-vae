@@ -29,6 +29,10 @@ def to_var(x):
         x = x.cuda()
     return Variable(x)
 
+output_folder = 'beta-vae'
+if 'SLURM_JOB_ID' in os.environ:
+    output_folder += '-{0}'.format(os.environ['SLURM_JOB_ID'])
+
 
 # VAE model
 class VAE(nn.Module):
@@ -81,14 +85,14 @@ vae = VAE()
 
 if torch.cuda.is_available():
     vae.cuda()
-    beta_ = Variable(torch.cuda.FloatTensor(vae.z_dim).fill_(-1.), requires_grad=True)
+    beta_ = Variable(torch.cuda.FloatTensor(vae.z_dim).uniform_(-1., 1.), requires_grad=True)
 else:
-    beta_ = Variable(torch.FloatTensor(vae.z_dim).fill_(-1.), requires_grad=True)
+    beta_ = Variable(torch.FloatTensor(vae.z_dim).uniform_(-1., 1.), requires_grad=True)
 
 optimizer = torch.optim.Adam(list(vae.parameters()) + [beta_], lr=0.001)
 iter_per_epoch = len(data_loader)
 
-writer = SummaryWriter('./.logs/beta-vae')
+writer = SummaryWriter('./.logs/{0}'.format(output_folder))
 
 # fixed inputs for debugging
 fixed_x, _ = next(iter(data_loader))
@@ -141,6 +145,6 @@ for epoch in range(50):
             'kl_divergence': kl_divergence.data[0]
         }
     }
-    if not os.path.exists('./.saves/beta-vae/'):
-        os.makedirs('./.saves/beta-vae/')
-    torch.save(state, './.saves/beta-vae/beta-vae_%d.ckpt' % (epoch + 1,))
+    if not os.path.exists('./.saves/{0}'.format(output_folder)):
+        os.makedirs('./.saves/{0}'.format(output_folder))
+    torch.save(state, './.saves/{0}beta-vae_{1:d}.ckpt'.format(output_folder, epoch + 1))
