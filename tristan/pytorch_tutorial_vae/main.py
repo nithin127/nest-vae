@@ -85,11 +85,13 @@ vae = VAE()
 
 if torch.cuda.is_available():
     vae.cuda()
-    beta_ = Variable(torch.cuda.FloatTensor(vae.z_dim).uniform_(-1., 1.), requires_grad=True)
+    # beta_ = Variable(torch.cuda.FloatTensor(vae.z_dim).uniform_(-1., 1.), requires_grad=True)
 else:
-    beta_ = Variable(torch.FloatTensor(vae.z_dim).uniform_(-1., 1.), requires_grad=True)
+    # beta_ = Variable(torch.FloatTensor(vae.z_dim).uniform_(-1., 1.), requires_grad=True)
+    pass
 
-optimizer = torch.optim.Adam(list(vae.parameters()) + [beta_], lr=0.001)
+# optimizer = torch.optim.Adam(list(vae.parameters()) + [beta_], lr=0.001)
+optimizer = torch.optim.Adam(vae.parameters(), lr=0.001)
 iter_per_epoch = len(data_loader)
 
 writer = SummaryWriter('./.logs/{0}'.format(output_folder))
@@ -109,9 +111,11 @@ for epoch in range(50):
         # Compute reconstruction loss and kl divergence
         # For kl_divergence, see Appendix B in the paper or http://yunjey47.tistory.com/43
         reconst_loss = F.binary_cross_entropy_with_logits(logits, images, size_average=False)
-        beta = 1. + F.softplus(beta_)
-        kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) - log_var - 1),
-            beta.unsqueeze(1)))
+        beta = 4.
+        kl_divergence = torch.sum(0.5 * beta * (mu ** 2 + torch.exp(log_var) - log_var - 1))
+        # beta = 1. + F.softplus(beta_)
+        # kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) - log_var - 1),
+        #     beta.unsqueeze(1)))
         
         # Backprop + Optimize
         total_loss = reconst_loss + kl_divergence
@@ -120,7 +124,7 @@ for epoch in range(50):
         optimizer.step()
 
         writer.add_scalar('loss', total_loss.data[0], epoch * iter_per_epoch + i)
-        writer.add_histogram('beta', beta.data, epoch * iter_per_epoch + i)
+        # writer.add_histogram('beta', beta.data, epoch * iter_per_epoch + i)
         
         if i % 100 == 0:
             print ("Epoch[%d/%d], Step [%d/%d], Total Loss: %.4f, "
