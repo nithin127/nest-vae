@@ -7,4 +7,4 @@ source $HOME/.bashrc
 source activate deleutri
 
 # Run the script
-python tristan/pytorch_tutorial_vae/main.py
+python tristan/pytorch_tutorial_vae/main.py $@

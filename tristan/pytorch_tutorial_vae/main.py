@@ -1,4 +1,6 @@
 import os
+import argparse
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -9,25 +11,45 @@ from torchvision import datasets, transforms
 
 from tensorboardX import SummaryWriter
 
-# MNIST dataset
-dataset = datasets.FashionMNIST(root='./data/fashion-mnist',
-                                train=True,
-                                transform=transforms.ToTensor(),
-                                download=True)
-# dataset = datasets.MNIST(root='./data/mnist',
-#                          train=True,
-#                          transform=transforms.ToTensor(),
-#                          download=True)
+parser = argparse.ArgumentParser(description='VAE')
+parser.add_argument('--batch-size', type=int, default=128, metavar='N',
+                    help='Input batch size for training (default: 128)')
+parser.add_argument('--epochs', type=int, default=50, metavar='N',
+                    help='Number of epochs to train (default: 10)')
+parser.add_argument('--dataset', type=str, default='fashion-mnist',
+                    help='Dataset to train the VAE on (default: fashion-mnist)')
+parser.add_argument('--beta', type=str, default='learned',
+                    help='Value for beta (default: learned)')
+
+parser.add_argument('--no-cuda', action='store_true', default=False,
+                    help='Enables CUDA training')
+parser.add_argument('--seed', type=int, default=7691, metavar='S',
+                    help='Random seed (default: 7691)')
+args = parser.parse_args()
+args.cuda = not args.no_cuda and torch.cuda.is_available()
+
+torch.manual_seed(args.seed)
+if args.cuda:
+    torch.cuda.manual_seed(args.seed)
+
+# Dataset
+if args.dataset == 'fashion-mnist':
+    dataset = datasets.FashionMNIST(root='./data/fashion-mnist',
+        train=True, transform=transforms.ToTensor(), download=True)
+elif args.dataset == 'mnist':
+    dataset = datasets.MNIST(root='./data/mnist',
+        train=True, transform=transforms.ToTensor(), download=True)
+else:
+    raise ValueError('The `dataset` argument must be fashion-mnist or mnist')
 
 # Data loader
 data_loader = torch.utils.data.DataLoader(dataset=dataset,
-                                          batch_size=100, 
-                                          shuffle=True)
+    batch_size=args.batch_size, shuffle=True)
 
-def to_var(x):
-    if torch.cuda.is_available():
+def to_var(x, **kwargs):
+    if args.cuda:
         x = x.cuda()
-    return Variable(x)
+    return Variable(x, **kwargs)
 
 output_folder = 'beta-vae'
 if 'SLURM_JOB_ID' in os.environ:
@@ -38,6 +60,9 @@ if 'SLURM_JOB_ID' in os.environ:
 class VAE(nn.Module):
     def __init__(self, image_size=784, h_dim=400, z_dim=20):
         super(VAE, self).__init__()
+        if args.cuda:
+            self.cuda()
+
         self.z_dim = z_dim
         self.encoder = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=4, stride=2),
@@ -82,16 +107,13 @@ class VAE(nn.Module):
         return self.decoder(z)
     
 vae = VAE()
+parameters = list(vae.parameters())
 
-if torch.cuda.is_available():
-    vae.cuda()
-    # beta_ = Variable(torch.cuda.FloatTensor(vae.z_dim).uniform_(-1., 1.), requires_grad=True)
-else:
-    # beta_ = Variable(torch.FloatTensor(vae.z_dim).uniform_(-1., 1.), requires_grad=True)
-    pass
+if args.beta == 'learned':
+    beta_ = to_var(torch.FloatTensor(vae.z_dim).uniform_(-1., 1.), requires_grad=True)
+    parameters.append(beta_)
 
-# optimizer = torch.optim.Adam(list(vae.parameters()) + [beta_], lr=0.001)
-optimizer = torch.optim.Adam(vae.parameters(), lr=0.001)
+optimizer = torch.optim.Adam(parameters, lr=0.001)
 iter_per_epoch = len(data_loader)
 
 writer = SummaryWriter('./.logs/{0}'.format(output_folder))
@@ -111,11 +133,13 @@ for epoch in range(50):
         # Compute reconstruction loss and kl divergence
         # For kl_divergence, see Appendix B in the paper or http://yunjey47.tistory.com/43
         reconst_loss = F.binary_cross_entropy_with_logits(logits, images, size_average=False)
-        beta = 4.
-        kl_divergence = torch.sum(0.5 * beta * (mu ** 2 + torch.exp(log_var) - log_var - 1))
-        # beta = 1. + F.softplus(beta_)
-        # kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) - log_var - 1),
-        #     beta.unsqueeze(1)))
+        if args.beta == 'learned':
+            beta = 1. + F.softplus(beta_)
+            kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) - log_var - 1),
+                beta.unsqueeze(1)))
+        else:
+            beta = int(args.beta)
+            kl_divergence = torch.sum(0.5 * beta * (mu ** 2 + torch.exp(log_var) - log_var - 1))
         
         # Backprop + Optimize
         total_loss = reconst_loss + kl_divergence
@@ -124,7 +148,8 @@ for epoch in range(50):
         optimizer.step()
 
         writer.add_scalar('loss', total_loss.data[0], epoch * iter_per_epoch + i)
-        # writer.add_histogram('beta', beta.data, epoch * iter_per_epoch + i)
+        if args.beta == 'learned':
+            writer.add_histogram('beta', beta.data, epoch * iter_per_epoch + i)
         
         if i % 100 == 0:
             print ("Epoch[%d/%d], Step [%d/%d], Total Loss: %.4f, "
@@ -136,7 +161,7 @@ for epoch in range(50):
     reconst_logits, _, _ = vae(fixed_x)
     reconst_grid = torchvision.utils.make_grid(F.sigmoid(reconst_logits).data,
         normalize=True, scale_each=True)
-    writer.add_image('beta-vae/reconstruction', reconst_grid, epoch)
+    writer.add_image('vae/reconstruction', reconst_grid, epoch)
 
     # Save the checkpoint
     state = {
@@ -147,7 +172,8 @@ for epoch in range(50):
             'total': total_loss.data[0],
             'reconstruction': reconst_loss.data[0],
             'kl_divergence': kl_divergence.data[0]
-        }
+        },
+        'args': args
     }
     if not os.path.exists('./.saves/{0}'.format(output_folder)):
         os.makedirs('./.saves/{0}'.format(output_folder))
