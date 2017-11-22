@@ -1,12 +1,17 @@
 import os
 import argparse
 
+# QKFIX: Add the parent path to PYTHONPATH
+import sys
+sys.path.insert(0, 'tristan')
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 
 import torchvision
+from datasets.dsprites import DSprites
 from torchvision import datasets, transforms
 
 from tensorboardX import SummaryWriter
@@ -43,8 +48,14 @@ if args.dataset == 'fashion-mnist':
 elif args.dataset == 'mnist':
     dataset = datasets.MNIST(root='./data/mnist',
         train=True, transform=transforms.ToTensor(), download=True)
+elif args.dataset == 'dsprites':
+    transform = transforms.Compose([
+        transforms.Resize((28, 28)),
+        transforms.ToTensor()
+    ])
+    dataset = DSprites(root='./data/dsprites', transform=transform, download=True)
 else:
-    raise ValueError('The `dataset` argument must be fashion-mnist or mnist')
+    raise ValueError('The `dataset` argument must be fashion-mnist, mnist or dsprites')
 
 # Data loader
 data_loader = torch.utils.data.DataLoader(dataset=dataset,
