@@ -125,7 +125,7 @@ writer = SummaryWriter('./.logs/{0}'.format(output_folder))
 # fixed inputs for debugging
 fixed_x, _ = next(iter(data_loader))
 fixed_grid = torchvision.utils.make_grid(fixed_x, normalize=True, scale_each=True)
-writer.add_image('beta-vae/original', fixed_grid, 0)
+writer.add_image('vae/original', fixed_grid, 0)
 fixed_x = to_var(fixed_x)
 
 for epoch in range(50):
