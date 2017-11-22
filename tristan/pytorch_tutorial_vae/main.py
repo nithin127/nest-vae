@@ -18,8 +18,12 @@ parser.add_argument('--epochs', type=int, default=50, metavar='N',
                     help='Number of epochs to train (default: 10)')
 parser.add_argument('--dataset', type=str, default='fashion-mnist',
                     help='Dataset to train the VAE on (default: fashion-mnist)')
+
 parser.add_argument('--beta', type=str, default='1',
                     help='Value for beta (default: 1)')
+parser.add_argument('--obs', type=str, default='normal',
+                    help='Type of the observation model (in [normal, bernoulli], '
+                         'default: normal)')
 
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='Enables CUDA training')
@@ -132,7 +136,14 @@ for epoch in range(50):
         
         # Compute reconstruction loss and kl divergence
         # For kl_divergence, see Appendix B in the paper or http://yunjey47.tistory.com/43
-        reconst_loss = F.binary_cross_entropy_with_logits(logits, images, size_average=False)
+        if args.obs == 'normal':
+            # QKFIX: We assume here that the image is in B&W
+            reconst_loss = F.mse_loss(F.sigmoid(logits), images, size_average=False)
+        elif args.obs == 'bernoulli':
+            reconst_loss = F.binary_cross_entropy_with_logits(logits, images, size_average=False)
+        else:
+            raise ValueError('Argument `obs` must be in [normal, bernoulli]')
+
         if args.beta == 'learned':
             beta = 1. + F.softplus(beta_)
             kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) - log_var - 1),
