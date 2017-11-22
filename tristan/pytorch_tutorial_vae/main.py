@@ -18,8 +18,8 @@ parser.add_argument('--epochs', type=int, default=50, metavar='N',
                     help='Number of epochs to train (default: 10)')
 parser.add_argument('--dataset', type=str, default='fashion-mnist',
                     help='Dataset to train the VAE on (default: fashion-mnist)')
-parser.add_argument('--beta', type=str, default='learned',
-                    help='Value for beta (default: learned)')
+parser.add_argument('--beta', type=str, default='1',
+                    help='Value for beta (default: 1)')
 
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='Enables CUDA training')
