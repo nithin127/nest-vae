@@ -60,8 +60,6 @@ if 'SLURM_JOB_ID' in os.environ:
 class VAE(nn.Module):
     def __init__(self, image_size=784, h_dim=400, z_dim=20):
         super(VAE, self).__init__()
-        if args.cuda:
-            self.cuda()
 
         self.z_dim = z_dim
         self.encoder = nn.Sequential(
@@ -107,6 +105,8 @@ class VAE(nn.Module):
         return self.decoder(z)
     
 vae = VAE()
+if args.cuda:
+    vae.cuda()
 parameters = list(vae.parameters())
 
 if args.beta == 'learned':
