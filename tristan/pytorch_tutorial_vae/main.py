@@ -26,6 +26,8 @@ parser.add_argument('--dataset', type=str, default='fashion-mnist',
 
 parser.add_argument('--beta', type=str, default='1',
                     help='Value for beta (default: 1)')
+parser.add_argument('--softmax', type=float, default=0.0,
+                    help='Sum of the betas (default: 0)')
 parser.add_argument('--obs', type=str, default='normal',
                     help='Type of the observation model (in [normal, bernoulli], '
                          'default: normal)')
@@ -162,7 +164,10 @@ for epoch in range(50):
             raise ValueError('Argument `obs` must be in [normal, bernoulli]')
 
         if args.beta == 'learned':
-            beta = 1. + F.softplus(beta_)
+            if args.softmax:
+                beta = args.softmax * vae.z_dim * F.softmax(beta_)
+            else:
+                beta = 1. + F.softplus(beta_)
             kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) - log_var - 1),
                 beta.unsqueeze(1)))
         else:
