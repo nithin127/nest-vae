@@ -79,10 +79,13 @@ class VAE(nn.Module):
         self.z_dim = z_dim
         self.encoder = nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=4, stride=2),
+            nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2),
             nn.Conv2d(32, 64, kernel_size=4, stride=2),
+            nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2),
             nn.Conv2d(64, 128, kernel_size=5),
+            nn.BatchNorm2d(128),
             nn.LeakyReLU(0.2))
 
         self.encoder_mean = nn.Linear(128, z_dim)
@@ -92,10 +95,13 @@ class VAE(nn.Module):
 
         self.decoder = nn.Sequential(
             nn.ConvTranspose2d(z_dim, 128, kernel_size=3),
+            nn.BatchNorm2d(128),
             nn.LeakyReLU(0.2),
             nn.ConvTranspose2d(128, 64, kernel_size=5),
+            nn.BatchNorm2d(64),
             nn.LeakyReLU(0.2),
             nn.ConvTranspose2d(64, 32, kernel_size=4, padding=1, stride=2),
+            nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2),
             nn.ConvTranspose2d(32, 1, kernel_size=4, padding=1, stride=2))
     
