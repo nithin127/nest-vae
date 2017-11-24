@@ -210,7 +210,7 @@ for beta_epoch in range(50):
                 'kl_divergence': kl_divergence.data[0]
             },
             'args': args,
-            'beta': beta.data if args.beta == 'learned' else int(beta)
+            'beta': beta.data
         }
         if not os.path.exists('./.saves/{0}'.format(output_folder)):
             os.makedirs('./.saves/{0}'.format(output_folder))
