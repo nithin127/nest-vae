@@ -1,4 +1,5 @@
 import os
+import math
 import argparse
 
 # QKFIX: Add the parent path to PYTHONPATH
@@ -28,6 +29,8 @@ parser.add_argument('--beta', type=str, default='1',
                     help='Value for beta (default: 1)')
 parser.add_argument('--softmax', type=float, default=0.0,
                     help='Sum of the betas (default: 0)')
+parser.add_argument('--entropy', action='store_true', default=False,
+                    help='Add a penalty on the entropy')
 parser.add_argument('--obs', type=str, default='normal',
                     help='Type of the observation model (in [normal, bernoulli], '
                          'default: normal)')
@@ -67,6 +70,27 @@ def to_var(x, **kwargs):
     if args.cuda:
         x = x.cuda()
     return Variable(x, **kwargs)
+
+def log_sum_exp(value, dim=None, keepdim=False):
+    """Numerically stable implementation of the operation
+
+    value.exp().sum(dim, keepdim).log()
+    """
+    # TODO: torch.max(value, dim=None) threw an error at time of writing
+    if dim is not None:
+        m, _ = torch.max(value, dim=dim, keepdim=True)
+        value0 = value - m
+        if keepdim is False:
+            m = m.squeeze(dim)
+        return m + torch.log(torch.sum(torch.exp(value0),
+                                       dim=dim, keepdim=keepdim))
+    else:
+        m = torch.max(value)
+        sum_exp = torch.sum(torch.exp(value - m))
+        if isinstance(sum_exp, Number):
+            return m + math.log(sum_exp)
+        else:
+            return m + torch.log(sum_exp)
 
 output_folder = 'beta-vae'
 if 'SLURM_JOB_ID' in os.environ:
@@ -165,7 +189,8 @@ for epoch in range(50):
 
         if args.beta == 'learned':
             if args.softmax:
-                beta = args.softmax * vae.z_dim * F.softmax(beta_)
+                beta_norm_ = F.softmax(beta_)
+                beta = args.softmax * vae.z_dim * beta_norm_
             else:
                 beta = 1. + F.softplus(beta_)
             kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) - log_var - 1),
@@ -176,6 +201,9 @@ for epoch in range(50):
         
         # Backprop + Optimize
         total_loss = reconst_loss + kl_divergence
+        if args.beta == 'learned' and args.softmax and args.entropy:
+            entropy = - torch.sum(beta_ * beta_norm_) + log_sum_exp(beta_)
+            total_loss += math.log(vae.z_dim) - entropy
         optimizer.zero_grad()
         total_loss.backward()
         optimizer.step()
