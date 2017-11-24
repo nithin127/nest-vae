@@ -184,8 +184,7 @@ for beta_epoch in range(50):
             num_iteration = i + epoch * iter_per_epoch + beta_epoch * 10 * iter_per_epoch
 
             writer.add_scalar('loss', total_loss.data[0], num_iteration)
-            if args.beta == 'learned':
-                writer.add_histogram('beta', beta.data, num_iteration)
+            writer.add_histogram('beta', beta.data, num_iteration)
             
             if i % 100 == 0:
                 print ("Epoch[%d/%d], Step [%d/%d], Total Loss: %.4f, "
