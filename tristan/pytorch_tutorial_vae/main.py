@@ -223,4 +223,4 @@ for epoch in range(50):
     }
     if not os.path.exists('./.saves/{0}'.format(output_folder)):
         os.makedirs('./.saves/{0}'.format(output_folder))
-    torch.save(state, './.saves/{0}beta-vae_{1:d}.ckpt'.format(output_folder, epoch + 1))
+    torch.save(state, './.saves/{0}/beta-vae_{1:d}.ckpt'.format(output_folder, epoch + 1))
