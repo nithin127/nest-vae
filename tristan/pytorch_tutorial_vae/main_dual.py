@@ -222,4 +222,4 @@ for beta_epoch in range(50):
     total_loss.backward()
     optimizer_beta.step()
 
-    print ("Beta-Epoch[%d/%d]" % (beta_epoch + 1, 50)
+    print ("Beta-Epoch[%d/%d]" % (beta_epoch + 1, 50))
