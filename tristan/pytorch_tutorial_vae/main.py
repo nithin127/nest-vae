@@ -218,7 +218,8 @@ for epoch in range(50):
             'reconstruction': reconst_loss.data[0],
             'kl_divergence': kl_divergence.data[0]
         },
-        'args': args
+        'args': args,
+        'beta': beta.data if args.beta == 'learned' else int(beta)
     }
     if not os.path.exists('./.saves/{0}'.format(output_folder)):
         os.makedirs('./.saves/{0}'.format(output_folder))
