@@ -142,7 +142,7 @@ if args.cuda:
 beta_ = to_var(torch.FloatTensor(vae.z_dim).uniform_(-11., -9.), requires_grad=True)
 
 optimizer = torch.optim.Adam(vae.parameters(), lr=0.001)
-optimizer_beta = torch.optim.Adam(beta_, lr=0.001)
+optimizer_beta = torch.optim.Adam([beta_], lr=0.001)
 iter_per_epoch = len(data_loader)
 
 writer = SummaryWriter('./.logs/{0}'.format(output_folder))
