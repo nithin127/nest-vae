@@ -1,174 +1,147 @@
-from __future__ import print_function
-import argparse
+import os
 import torch
-import torch.utils.data
 import torch.nn as nn
-import torch.optim as optim
-import numpy as np
-import matplotlib
-matplotlib.use("agg")
-import matplotlib.pyplot as plt
-import torchvision
-import torchvision.transforms as transforms
+import torch.nn.functional as F
 from torch.autograd import Variable
+
+import torchvision
 from torchvision import datasets, transforms
 
-parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
-parser.add_argument('--batch-size', type=int, default=128, metavar='N',
-                    help='input batch size for training (default: 64)')
-parser.add_argument('--epochs', type=int, default=10, metavar='N',
-                    help='number of epochs to train (default: 2)')
-parser.add_argument('--no-cuda', action='store_true', default=False,
-                    help='enables CUDA training')
-parser.add_argument('--seed', type=int, default=1, metavar='S',
-                    help='random seed (default: 1)')
-parser.add_argument('--log-interval', type=int, default=10, metavar='N',
-                    help='how many batches to wait before logging training status')
-args = parser.parse_args()
-args.cuda = not args.no_cuda and torch.cuda.is_available()
+from tensorboardX import SummaryWriter
+
+# MNIST dataset
+dataset = datasets.FashionMNIST(root='./data/fashion-mnist',
+                                train=True,
+                                transform=transforms.ToTensor(),
+                                download=True)
+# dataset = datasets.MNIST(root='./data/mnist',
+#                          train=True,
+#                          transform=transforms.ToTensor(),
+#                          download=True)
+
+# Data loader
+data_loader = torch.utils.data.DataLoader(dataset=dataset,
+                                          batch_size=100,
+                                          shuffle=True)
+
+def to_var(x):
+    if torch.cuda.is_available():
+        x = x.cuda()
+    return Variable(x)
 
 
-torch.manual_seed(args.seed)
-if args.cuda:
-    torch.cuda.manual_seed(args.seed)
-
-
-kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
-train_loader = torch.utils.data.DataLoader(
-    datasets.MNIST('../data', train=True, download=True,
-                   transform=transforms.ToTensor()),
-    batch_size=args.batch_size, shuffle=True, **kwargs)
-test_loader = torch.utils.data.DataLoader(
-    datasets.MNIST('../data', train=False, transform=transforms.ToTensor()),
-    batch_size=args.batch_size, shuffle=True, **kwargs)
-
-
+# VAE model
 class VAE(nn.Module):
-    def __init__(self):
+    def __init__(self, image_size=784, h_dim=400, z_dim=20):
         super(VAE, self).__init__()
+        self.z_dim = z_dim
+        self.encoder = nn.Sequential(
+            nn.Conv2d(1, 32, kernel_size=4, stride=2), #check
+            nn.LeakyReLU(0.2),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2),
+            nn.LeakyReLU(0.2),
+            nn.Conv2d(64, 128, kernel_size=5),
+            nn.LeakyReLU(0.2))
 
-        self.fc1 = nn.Linear(784, 400)
-        self.fc21 = nn.Linear(400, 20)
-        self.fc22 = nn.Linear(400, 20)
-        self.fc3 = nn.Linear(20, 400)
-        self.fc4 = nn.Linear(400, 784)
+        self.encoder_mean = nn.Linear(128, z_dim)
+        self.encoder_logvar = nn.Sequential(
+            nn.Linear(128, z_dim),
+            nn.Softplus())
 
-        self.relu = nn.ReLU()
-        self.sigmoid = nn.Sigmoid()
+        self.decoder = nn.Sequential(
+            nn.ConvTranspose2d(z_dim, 128, kernel_size=3),
+            nn.LeakyReLU(0.2),
+            nn.ConvTranspose2d(128, 64, kernel_size=5),
+            nn.LeakyReLU(0.2),
+            nn.ConvTranspose2d(64, 32, kernel_size=4, padding=1, stride=2),
+            nn.LeakyReLU(0.2),
+            nn.ConvTranspose2d(32, 1, kernel_size=4, padding=1, stride=2))
 
-    def encode(self, x):
-        h1 = self.relu(self.fc1(x))
-        return self.fc21(h1), self.fc22(h1)
-
-    def reparametrize(self, mu, logvar):
-        std = logvar.mul(0.5).exp_()
-        if args.cuda:
-            eps = torch.cuda.FloatTensor(std.size()).normal_()
-        else:
-            eps = torch.FloatTensor(std.size()).normal_()
-        eps = Variable(eps)
-        return eps.mul(std).add_(mu)
-
-    def decode(self, z):
-        h3 = self.relu(self.fc3(z))
-        return self.sigmoid(self.fc4(h3))
+    def reparametrize(self, mu, log_var):
+        """"z = mean + eps * sigma where eps is sampled from N(0, 1)."""
+        eps = to_var(torch.randn(mu.size(0), mu.size(1)))
+        z = mu + eps * torch.exp(0.5 * log_var) # 0.5 to convert var to std
+        return z
 
     def forward(self, x):
-        mu, logvar = self.encode(x.view(-1, 784))
-        z = self.reparametrize(mu, logvar)
-        return self.decode(z), mu, logvar
+        h = self.encoder(x)
+        h = h.view(h.size(0), -1)
+        mu, log_var = self.encoder_mean(h), self.encoder_logvar(h)
+
+        z = self.reparametrize(mu, log_var)
+        z = z.view(h.size(0), self.z_dim, 1, 1)
+        logits = self.decoder(z)
+
+        return logits, mu, log_var
+
+    def sample(self, z):
+        return self.decoder(z)
+
+vae = VAE()
+beta_ = Variable(torch.FloatTensor(vae.z_dim).fill_(-1.), requires_grad=True)
+
+if torch.cuda.is_available():
+    vae.cuda()
+    #beta_ = beta_.cuda()
+    beta_ = Variable(torch.FloatTensor(vae.z_dim).fill_(-1.).cuda(), requires_grad=True)
 
 
-model = VAE()
-if args.cuda:
-    model.cuda()
+optimizer = torch.optim.Adam(list(vae.parameters()) + [beta_], lr=0.001)
+iter_per_epoch = len(data_loader)
 
-reconstruction_function = nn.BCELoss()
-reconstruction_function.size_average = False
+writer = SummaryWriter('./.logs/beta-vae')
 
+# fixed inputs for debugging
+fixed_x, _ = next(iter(data_loader))
+fixed_grid = torchvision.utils.make_grid(fixed_x, normalize=True, scale_each=True)
+writer.add_image('beta-vae/original', fixed_grid, 0)
+fixed_x = to_var(fixed_x)
 
-def loss_function(recon_x, x, mu, logvar):
-    BCE = reconstruction_function(recon_x, x)
+for epoch in range(50):
+    for i, (images, _) in enumerate(data_loader):
 
-    # see Appendix B from VAE paper:
-    # Kingma and Welling. Auto-Encoding Variational Bayes. ICLR, 2014
-    # https://arxiv.org/abs/1312.6114
-    # 0.5 * sum(1 + log(sigma^2) - mu^2 - sigma^2)
-    #print("logvar size is")
-    #print(logvar.size())
-    #print("mu shape is")
-    #print(mu.size())
-    #KLD_element = (mu.pow(2).add_(logvar.exp())).mul_(-1).add_(1).add_(logvar)
-    KLD_element2 = (mu.pow(2).add_(logvar.exp()).add_(1/logvar.exp())).mul(-1).add(1)
-    KLD = torch.sum(KLD_element2).mul_(-0.5)
+        images = to_var(images)
+        logits, mu, log_var = vae(images)
 
-    return BCE + KLD
-    #return BCE
+        # Compute reconstruction loss and kl divergence
+        # For kl_divergence, see Appendix B in the paper or http://yunjey47.tistory.com/43
+        reconst_loss = F.binary_cross_entropy_with_logits(logits, images, size_average=False)
+        beta = 1. + F.softplus(beta_)
+        kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) - log_var - 1),
+            beta.unsqueeze(1)))
 
-
-optimizer = optim.Adam(model.parameters(), lr=1e-3)
-
-
-def train(epoch):
-    model.train()
-    train_loss = 0
-    for batch_idx, (data, _) in enumerate(train_loader):
-        data = Variable(data)
-        #print(data.sum())
-        if args.cuda:
-            data = data.cuda()
+        # Backprop + Optimize
+        total_loss = reconst_loss + kl_divergence
         optimizer.zero_grad()
-        recon_batch, mu, logvar = model(data)
-        loss = loss_function(recon_batch, data, mu, logvar)
-        loss.backward()
-        train_loss += loss.data[0]
+        total_loss.backward()
         optimizer.step()
-        if batch_idx % args.log_interval == 0:
-            print('Train Epoch: {} [{}/{} ({:.0f}%)]\tLoss: {:.6f}'.format(
-                epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader),
-                loss.data[0] / len(data)))
 
-    print('====> Epoch: {} Average loss: {:.4f}'.format(
-          epoch, train_loss / len(train_loader.dataset)))
+        writer.add_scalar('loss', total_loss.data[0], epoch * iter_per_epoch + i)
+        writer.add_histogram('beta', beta.data, epoch * iter_per_epoch + i)
 
+        if i % 100 == 0:
+            print ("Epoch[%d/%d], Step [%d/%d], Total Loss: %.4f, "
+                   "Reconst Loss: %.4f, KL Div: %.7f"
+                   %(epoch + 1, 50, i + 1, iter_per_epoch, total_loss.data[0],
+                     reconst_loss.data[0], kl_divergence.data[0]))
 
-#def imshow(img):
-#    img = img / 2 + 0.5     # unnormalize
-#    #npimg = img.numpy()
-#    plt.imshow(img)
+    # Save the reconstructed images
+    reconst_logits, _, _ = vae(fixed_x)
+    reconst_grid = torchvision.utils.make_grid(F.sigmoid(reconst_logits).data,
+        normalize=True, scale_each=True)
+    writer.add_image('beta-vae/reconstruction', reconst_grid, epoch)
 
-
-def test(epoch):
-    model.eval()
-    test_loss = 0
-    for data, _ in test_loader:
-        if args.cuda:
-            data = data.cuda()
-        data = Variable(data, volatile=True)
-        recon_batch, mu, logvar = model(data)
-        #print(recon_batch.size())
-        #for i in range(128):
-        #x=Variable(torch.arange(28,28))
-        #x = recon_batch.resize(128,28,28)
-        x = recon_batch.view(-1,28,28)
-        print(x.size())
-        tester = x[0,:,:]
-        #print(tester)
-        tester_img = (tester.data).cpu().numpy()
-        #iprint(tester_img)
-        plt.imshow(tester_img)
-        plt.show()
-        #cv2.imshow("lol",tester_img)
-        test_loss += loss_function(recon_batch, data, mu, logvar).data[0]
-
-    test_loss /= len(test_loader.dataset)
-    plt.imshow(tester_img, interpolation='nearest')
-
-    #imshow(tester_img)
-    print('====> Test set loss: {:.4f}'.format(test_loss))
-
-
-for epoch in range(1, args.epochs + 1):
-    train(epoch)
-    test(epoch)
+    # Save the checkpoint
+    state = {
+        'epoch': epoch + 1,
+        'model': vae.state_dict(),
+        'optimizer': optimizer.state_dict(),
+        'loss': {
+            'total': total_loss.data[0],
+            'reconstruction': reconst_loss.data[0],
+            'kl_divergence': kl_divergence.data[0]
+        }
+    }
+    if not os.path.exists('./.saves/beta-vae/'):
+        os.makedirs('./.saves/beta-vae/')
+    torch.save(state, './.saves/beta-vae/beta-vae_%d.ckpt' % (epoch + 1,))
