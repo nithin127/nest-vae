@@ -105,14 +105,16 @@ for epoch in range(50):
 
         # Compute reconstruction loss and kl divergence
         # For kl_divergence, see Appendix B in the paper or http://yunjey47.tistory.com/43
+        log_var2 = 1. / log_var
         reconst_loss = F.binary_cross_entropy_with_logits(logits, images, size_average=False)
         beta = 1. + F.softplus(beta_)
-        kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) - log_var - 1),
+        kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) + torch.exp(log_var) - log_var - 1),
             beta.unsqueeze(1)))
-        print("size of mu is")
-        print(mu.size())
-        print("size of log var is ")
-        print(log_var.size())
+        #print("size of mu is")
+        #print(mu.size())
+        #log_var2 = 1. / log_var
+        #print("size of log var is ")
+        #print(log_var.size())
 
         # Backprop + Optimize
         total_loss = reconst_loss + kl_divergence
