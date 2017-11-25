@@ -36,7 +36,7 @@ class VAE(nn.Module):
         super(VAE, self).__init__()
         self.z_dim = z_dim
         self.encoder = nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=4, stride=2), #check
+            nn.Conv2d(1, 32, kernel_size=4, stride=2),
             nn.LeakyReLU(0.2),
             nn.Conv2d(32, 64, kernel_size=4, stride=2),
             nn.LeakyReLU(0.2),
@@ -109,6 +109,10 @@ for epoch in range(50):
         beta = 1. + F.softplus(beta_)
         kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) - log_var - 1),
             beta.unsqueeze(1)))
+        print("size of mu is")
+        print(mu.size())
+        print("size of log var is ")
+        print(log_var.size())
 
         # Backprop + Optimize
         total_loss = reconst_loss + kl_divergence
