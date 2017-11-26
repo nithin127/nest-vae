@@ -114,13 +114,13 @@ class VAE(nn.Module):
             nn.BatchNorm2d(32),
             nn.LeakyReLU(0.2),
             nn.ConvTranspose2d(32, 1, kernel_size=4, padding=1, stride=2))
-    
+
     def reparametrize(self, mu, log_var):
         """"z = mean + eps * sigma where eps is sampled from N(0, 1)."""
         eps = to_var(torch.randn(mu.size(0), mu.size(1)))
         z = mu + eps * torch.exp(0.5 * log_var) # 0.5 to convert var to std
         return z
-                     
+
     def forward(self, x):
         h = self.encoder(x)
         h = h.view(h.size(0), -1)
@@ -131,10 +131,10 @@ class VAE(nn.Module):
         logits = self.decoder(z)
 
         return logits, mu, log_var
-    
+
     def sample(self, z):
         return self.decoder(z)
-    
+
 vae = VAE()
 if args.cuda:
     vae.cuda()
@@ -157,10 +157,10 @@ fixed_x = to_var(fixed_x)
 
 for epoch in range(50):
     for i, (images, _) in enumerate(data_loader):
-        
+
         images = to_var(images)
         logits, mu, log_var = vae(images)
-        
+
         # Compute reconstruction loss and kl divergence
         # For kl_divergence, see Appendix B in the paper or http://yunjey47.tistory.com/43
         if args.obs == 'normal':
@@ -182,7 +182,7 @@ for epoch in range(50):
         else:
             beta = int(args.beta)
             kl_divergence = torch.sum(0.5 * beta * (mu ** 2 + torch.exp(log_var) - log_var - 1))
-        
+
         # Backprop + Optimize
         total_loss = reconst_loss + kl_divergence
         if args.beta == 'learned' and args.softmax and args.entropy:
@@ -195,13 +195,13 @@ for epoch in range(50):
         writer.add_scalar('loss', total_loss.data[0], epoch * iter_per_epoch + i)
         if args.beta == 'learned':
             writer.add_histogram('beta', beta.data, epoch * iter_per_epoch + i)
-        
+
         if i % 100 == 0:
             print ("Epoch[%d/%d], Step [%d/%d], Total Loss: %.4f, "
-                   "Reconst Loss: %.4f, KL Div: %.7f" 
+                   "Reconst Loss: %.4f, KL Div: %.7f"
                    %(epoch + 1, 50, i + 1, iter_per_epoch, total_loss.data[0],
                      reconst_loss.data[0], kl_divergence.data[0]))
-    
+
     # Save the reconstructed images
     reconst_logits, _, _ = vae(fixed_x)
     reconst_grid = torchvision.utils.make_grid(F.sigmoid(reconst_logits).data,
