@@ -110,14 +110,24 @@ for epoch in range(50):
         log_var2 = 1. / log_var
         reconst_loss = F.binary_cross_entropy_with_logits(logits, images, size_average=False)
         beta = 1. + F.softplus(beta_)
-        print("logvar size is")
-        one_log_var = log_var[0,:]
-        one_log_var = one_log_var.resize(20,1)
-        print(one_log_var.size())
-        logvar_mat = np.diagflat(one_log_var)
-        print("logvar_mat size is")
-        print(logvar_mat.shape())
-        kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) - log_var - 1), beta.unsqueeze(1)))
+        #print("one_log_var size is")
+        #one_log_var = log_var.data.cpu().numpy()
+        #one_log_var = one_log_var[0,:]
+        #one_log_var = one_log_var.resize(20,1)
+        #one_log_var = np.squeeze(np.asarray(one_log_var))
+        #print(log_var.size())
+        for lol in range(100):
+            logvar_vec = log_var[lol,:]
+            logvar_mat = torch.diag(log_var[lol,:])
+            mean_vec = mu[lol,:]
+            #logvar_mat = torch.diag(logvar_mat)
+            #print("logvar_mat size is")
+            #print(logvar_mat)
+            kl_divergence = torch.sum(0.5 * torch.matmul((mean_vec ** 2 + torch.exp(logvar_vec) - logvar_vec - 1), beta.unsqueeze(1)))
+            if lol == 0:
+                total_loss = reconst_loss + kl_divergence
+            else:
+                total_loss = total_loss + reconst_loss + kl_divergence
         #kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) + torch.exp(log_var2) - log_var - 1),
         #    beta.unsqueeze(1)))
         #print("size of mu is")
@@ -128,10 +138,10 @@ for epoch in range(50):
 
         # Backprop + Optimize
         #total_loss = reconst_loss + kl_divergence
-        if epoch % 3 == 0:
-            total_loss = kl_divergence
-        else:
-            total_loss = reconst_loss
+        #if epoch % 3 == 0:
+        #    total_loss = kl_divergence
+        #else:
+        #    total_loss = reconst_loss
         optimizer.zero_grad()
         total_loss.backward()
         optimizer.step()
