@@ -2,6 +2,7 @@ import os
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 from torch.autograd import Variable
 
 import torchvision
@@ -10,14 +11,15 @@ from torchvision import datasets, transforms
 from tensorboardX import SummaryWriter
 
 # MNIST dataset
-dataset = datasets.FashionMNIST(root='./data/fashion-mnist',
-                                train=True,
-                                transform=transforms.ToTensor(),
-                                download=True)
-# dataset = datasets.MNIST(root='./data/mnist',
-#                          train=True,
-#                          transform=transforms.ToTensor(),
-#                          download=True)
+#dataset = datasets.FashionMNIST(root='./data/fashion-mnist',
+#                                train=True,
+#                                transform=transforms.ToTensor(),
+#                                download=True)
+
+dataset = datasets.MNIST(root='./data/mnist',
+                          train=True,
+                          transform=transforms.ToTensor(),
+                          download=True)
 
 # Data loader
 data_loader = torch.utils.data.DataLoader(dataset=dataset,
@@ -108,8 +110,16 @@ for epoch in range(50):
         log_var2 = 1. / log_var
         reconst_loss = F.binary_cross_entropy_with_logits(logits, images, size_average=False)
         beta = 1. + F.softplus(beta_)
-        kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) + torch.exp(log_var) - log_var - 1),
-            beta.unsqueeze(1)))
+        print("logvar size is")
+        one_log_var = log_var[0,:]
+        one_log_var = one_log_var.resize(20,1)
+        print(one_log_var.size())
+        logvar_mat = np.diagflat(one_log_var)
+        print("logvar_mat size is")
+        print(logvar_mat.shape())
+        kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) - log_var - 1), beta.unsqueeze(1)))
+        #kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) + torch.exp(log_var2) - log_var - 1),
+        #    beta.unsqueeze(1)))
         #print("size of mu is")
         #print(mu.size())
         #log_var2 = 1. / log_var
@@ -117,7 +127,11 @@ for epoch in range(50):
         #print(log_var.size())
 
         # Backprop + Optimize
-        total_loss = reconst_loss + kl_divergence
+        #total_loss = reconst_loss + kl_divergence
+        if epoch % 3 == 0:
+            total_loss = kl_divergence
+        else:
+            total_loss = reconst_loss
         optimizer.zero_grad()
         total_loss.backward()
         optimizer.step()
