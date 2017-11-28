@@ -42,7 +42,7 @@ for i in range(z_dim):
     z = np.random.uniform(-5,5,(z_dim))
     z = np.asarray([list(z)]*n_images)
     z.T[i] = np.linspace(-5,5,n_images)
-    z = torch.FloatTensor(z).view(h.size(0), self.z_dim, 1, 1)
+    z = torch.FloatTensor(z).view(n_images, self.z_dim, 1, 1)
     reconst_logits, _, _ = vae.decoder(z)
     reconst_grid = torchvision.utils.make_grid(F.sigmoid(reconst_logits).data,
         normalize=True, scale_each=True)
