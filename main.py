@@ -26,6 +26,7 @@ data_loader = torch.utils.data.DataLoader(dataset=dataset,
                                           batch_size=100,
                                           shuffle=True)
 
+
 def to_var(x):
     if torch.cuda.is_available():
         x = x.cuda()
@@ -79,105 +80,110 @@ class VAE(nn.Module):
     def sample(self, z):
         return self.decoder(z)
 
-vae = VAE()
-beta_ = Variable(torch.FloatTensor(vae.z_dim).fill_(-1.), requires_grad=True)
+def main():
+    vae = VAE()
+    beta_ = Variable(torch.FloatTensor(vae.z_dim).fill_(-1.), requires_grad=True)
 
-if torch.cuda.is_available():
-    vae.cuda()
-    #beta_ = beta_.cuda()
-    beta_ = Variable(torch.FloatTensor(vae.z_dim).fill_(-1.).cuda(), requires_grad=True)
+    if torch.cuda.is_available():
+        vae.cuda()
+        #beta_ = beta_.cuda()
+        beta_ = Variable(torch.FloatTensor(vae.z_dim).fill_(-1.).cuda(), requires_grad=True)
 
 
-optimizer = torch.optim.Adam(list(vae.parameters()) + [beta_], lr=0.001)
-iter_per_epoch = len(data_loader)
+    optimizer = torch.optim.Adam(list(vae.parameters()) + [beta_], lr=0.001)
+    iter_per_epoch = len(data_loader)
 
-writer = SummaryWriter('./.logs/beta-vae')
+    writer = SummaryWriter('./.logs/beta-vae')
 
-# fixed inputs for debugging
-fixed_x, _ = next(iter(data_loader))
-fixed_grid = torchvision.utils.make_grid(fixed_x, normalize=True, scale_each=True)
-writer.add_image('beta-vae/original', fixed_grid, 0)
-fixed_x = to_var(fixed_x)
+    # fixed inputs for debugging
+    fixed_x, _ = next(iter(data_loader))
+    fixed_grid = torchvision.utils.make_grid(fixed_x, normalize=True, scale_each=True)
+    writer.add_image('beta-vae/original', fixed_grid, 0)
+    fixed_x = to_var(fixed_x)
 
-for epoch in range(50):
-    for i, (images, _) in enumerate(data_loader):
+    for epoch in range(50):
+        for i, (images, _) in enumerate(data_loader):
 
-        images = to_var(images)
-        logits, mu, log_var = vae(images)
+            images = to_var(images)
+            logits, mu, log_var = vae(images)
 
-        # Compute reconstruction loss and kl divergence
-        # For kl_divergence, see Appendix B in the paper or http://yunjey47.tistory.com/43
-        log_var2 = 1. / log_var
-        reconst_loss = F.binary_cross_entropy_with_logits(logits, images, size_average=False)
-        beta = 1. + F.softplus(beta_)
-        #print("one_log_var size is")
-        #one_log_var = log_var.data.cpu().numpy()
-        #one_log_var = one_log_var[0,:]
-        #one_log_var = one_log_var.resize(20,1)
-        #one_log_var = np.squeeze(np.asarray(one_log_var))
-        #print(log_var.size())
-        for lol in range(100):
-            logvar_vec = log_var[lol,:]
-            logvar2_vec = 1/logvar_vec
-            logvar_mat = torch.diag(log_var[lol,:])
-            varmat = torch.exp(logvar_mat)
-            chol = Variable(torch.potrf(varmat.data))
-            varmat_inv = Variable(torch.potri(chol.data))
-            #print(varmat_inv)
-            mean_vec = mu[lol,:]
-            #logvar_mat = torch.diag(logvar_mat)
-            #print("logvar_mat size is")
-            #print(logvar_mat)
-            kl_divergence = torch.sum(0.5 * torch.matmul((mean_vec ** 2 + torch.exp(logvar_vec) - logvar_vec - 1), beta.unsqueeze(1)))
-            jensen = torch.sum(0.25 * (-2 + torch.exp(logvar_vec) + torch.exp(-logvar_vec) + mean_vec *mean_vec*logvar2_vec + mean_vec ** 2 ))
-            if lol == 0:
-                total_loss = reconst_loss + jensen
-            else:
-                total_loss = total_loss + reconst_loss + jensen
-        #kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) + torch.exp(log_var2) - log_var - 1),
-        #    beta.unsqueeze(1)))
-        #print("size of mu is")
-        #print(mu.size())
-        #log_var2 = 1. / log_var
-        #print("size of log var is ")
-        #print(log_var.size())
+            # Compute reconstruction loss and kl divergence
+            # For kl_divergence, see Appendix B in the paper or http://yunjey47.tistory.com/43
+            log_var2 = 1. / log_var
+            reconst_loss = F.binary_cross_entropy_with_logits(logits, images, size_average=False)
+            beta = 1. + F.softplus(beta_)
+            #print("one_log_var size is")
+            #one_log_var = log_var.data.cpu().numpy()
+            #one_log_var = one_log_var[0,:]
+            #one_log_var = one_log_var.resize(20,1)
+            #one_log_var = np.squeeze(np.asarray(one_log_var))
+            #print(log_var.size())
+            for lol in range(100):
+                logvar_vec = log_var[lol,:]
+                logvar2_vec = 1/logvar_vec
+                logvar_mat = torch.diag(log_var[lol,:])
+                varmat = torch.exp(logvar_mat)
+                chol = Variable(torch.potrf(varmat.data))
+                varmat_inv = Variable(torch.potri(chol.data))
+                #print(varmat_inv)
+                mean_vec = mu[lol,:]
+                #logvar_mat = torch.diag(logvar_mat)
+                #print("logvar_mat size is")
+                #print(logvar_mat)
+                kl_divergence = torch.sum(0.5 * torch.matmul((mean_vec ** 2 + torch.exp(logvar_vec) - logvar_vec - 1), beta.unsqueeze(1)))
+                jensen = torch.sum(0.25 * (-2 + torch.exp(logvar_vec) + torch.exp(-logvar_vec) + mean_vec *mean_vec*logvar2_vec + mean_vec ** 2 ))
+                if lol == 0:
+                    total_loss = reconst_loss + jensen
+                else:
+                    total_loss = total_loss + reconst_loss + jensen
+            #kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) + torch.exp(log_var2) - log_var - 1),
+            #    beta.unsqueeze(1)))
+            #print("size of mu is")
+            #print(mu.size())
+            #log_var2 = 1. / log_var
+            #print("size of log var is ")
+            #print(log_var.size())
 
-        # Backprop + Optimize
-        #total_loss = reconst_loss + kl_divergence
-        #if epoch % 3 == 0:
-        #  total_loss = kl_divergence
-        #else:
-        #    total_loss = reconst_loss
-        optimizer.zero_grad()
-        total_loss.backward()
-        optimizer.step()
+            # Backprop + Optimize
+            #total_loss = reconst_loss + kl_divergence
+            #if epoch % 3 == 0:
+            #  total_loss = kl_divergence
+            #else:
+            #    total_loss = reconst_loss
+            optimizer.zero_grad()
+            total_loss.backward()
+            optimizer.step()
 
-        writer.add_scalar('loss', total_loss.data[0], epoch * iter_per_epoch + i)
-        writer.add_histogram('beta', beta.data, epoch * iter_per_epoch + i)
+            writer.add_scalar('loss', total_loss.data[0], epoch * iter_per_epoch + i)
+            writer.add_histogram('beta', beta.data, epoch * iter_per_epoch + i)
 
-        if i % 100 == 0:
-            print ("Epoch[%d/%d], Step [%d/%d], Total Loss: %.4f, "
-                   "Reconst Loss: %.4f, KL Div: %.7f"
-                   %(epoch + 1, 50, i + 1, iter_per_epoch, total_loss.data[0],
-                     reconst_loss.data[0], kl_divergence.data[0]))
+            if i % 100 == 0:
+                print ("Epoch[%d/%d], Step [%d/%d], Total Loss: %.4f, "
+                       "Reconst Loss: %.4f, KL Div: %.7f"
+                       %(epoch + 1, 50, i + 1, iter_per_epoch, total_loss.data[0],
+                         reconst_loss.data[0], kl_divergence.data[0]))
 
-    # Save the reconstructed images
-    reconst_logits, _, _ = vae(fixed_x)
-    reconst_grid = torchvision.utils.make_grid(F.sigmoid(reconst_logits).data,
-        normalize=True, scale_each=True)
-    writer.add_image('beta-vae/reconstruction2', reconst_grid, epoch)
+        # Save the reconstructed images
+        reconst_logits, _, _ = vae(fixed_x)
+        reconst_grid = torchvision.utils.make_grid(F.sigmoid(reconst_logits).data,
+            normalize=True, scale_each=True)
+        writer.add_image('beta-vae/reconstruction2', reconst_grid, epoch)
 
-    # Save the checkpoint
-    state = {
-        'epoch': epoch + 1,
-        'model': vae.state_dict(),
-        'optimizer': optimizer.state_dict(),
-        'loss': {
-            'total': total_loss.data[0],
-            'reconstruction': reconst_loss.data[0],
-            'kl_divergence': kl_divergence.data[0]
+        # Save the checkpoint
+        state = {
+            'epoch': epoch + 1,
+            'model': vae.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'loss': {
+                'total': total_loss.data[0],
+                'reconstruction': reconst_loss.data[0],
+                'kl_divergence': kl_divergence.data[0]
+            }
         }
-    }
-    if not os.path.exists('./.saves/beta-vae/'):
-        os.makedirs('./.saves/beta-vae/')
-    torch.save(state, './.saves/beta-vae/beta-vae_%d.ckpt' % (epoch + 1,))
+        if not os.path.exists('./.saves/beta-vae/'):
+            os.makedirs('./.saves/beta-vae/')
+        torch.save(state, './.saves/beta-vae/beta-vae_%d.ckpt' % (epoch + 1,))
+
+
+if __name__ == "__main__":
+    main()
