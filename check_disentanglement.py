@@ -36,6 +36,7 @@ writer = SummaryWriter('./.logs/visualize/')
 
 z_dim = vae.z_dim
 n_images = 10
+epoch = ckpt['epoch']
 
 for i in range(z_dim):
     print('Working on dimension {}'.format(i))
