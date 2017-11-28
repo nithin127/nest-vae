@@ -38,10 +38,12 @@ z_dim = vae.z_dim
 n_images = 10
 
 for i in range(z_dim):
+	print('Working on dimension {}'.format(i))
     z = np.random.uniform(-5,5,(z_dim))
     z = np.asarray([list(z)]*n_images)
     z.T[i] = np.linspace(-5,5,n_images)
-    reconst_logits, _, _ = vae.decoder(torch.FloatTensor(z))
+    z = torch.FloatTensor(z).view(h.size(0), self.z_dim, 1, 1)
+    reconst_logits, _, _ = vae.decoder(z)
     reconst_grid = torchvision.utils.make_grid(F.sigmoid(reconst_logits).data,
         normalize=True, scale_each=True)
     writer.add_image('beta-vae/feature_{}'.format(i), reconst_grid, epoch)
