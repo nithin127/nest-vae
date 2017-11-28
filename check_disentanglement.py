@@ -38,7 +38,7 @@ z_dim = vae.z_dim
 n_images = 10
 
 for i in range(z_dim):
-	print('Working on dimension {}'.format(i))
+    print('Working on dimension {}'.format(i))
     z = np.random.uniform(-5,5,(z_dim))
     z = np.asarray([list(z)]*n_images)
     z.T[i] = np.linspace(-5,5,n_images)
