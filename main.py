@@ -129,7 +129,7 @@ for epoch in range(50):
             #print("logvar_mat size is")
             #print(logvar_mat)
             kl_divergence = torch.sum(0.5 * torch.matmul((mean_vec ** 2 + torch.exp(logvar_vec) - logvar_vec - 1), beta.unsqueeze(1)))
-            jensen = torch.sum(0.5 * (-2 + torch.exp(logvar_vec + logvar2_vec) + mean_vec* varmat_inv *mean_vec + mean_vec ** 2 ))
+            jensen = torch.sum(0.25 * (-2 + torch.exp(logvar_vec) + torch.exp(-logvar_vec) + mean_vec *mean_vec*logvar2_vec + mean_vec ** 2 ))
             if lol == 0:
                 total_loss = reconst_loss + jensen
             else:
@@ -165,7 +165,7 @@ for epoch in range(50):
     reconst_logits, _, _ = vae(fixed_x)
     reconst_grid = torchvision.utils.make_grid(F.sigmoid(reconst_logits).data,
         normalize=True, scale_each=True)
-    writer.add_image('beta-vae/reconstruction', reconst_grid, epoch)
+    writer.add_image('beta-vae/reconstruction2', reconst_grid, epoch)
 
     # Save the checkpoint
     state = {
