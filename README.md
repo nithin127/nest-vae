@@ -17,11 +17,6 @@ python main.py
 
 git clone https://github.com/nithin127/nest-vae
 cd nest-vae
-git checkout -b devel-sai 	#to create your own branch named “devel-sai”
-git add *			#to add all the files to be committed
-git commit -m "comments"	#to comment
-git push			#it will prompt you to type the next command
-git push --set-upstream origin devel-yourname
 
 To get the tensorboard working:
 
