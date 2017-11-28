@@ -76,7 +76,7 @@ def log_sum_exp(value):
     sum_exp = torch.sum(torch.exp(value - m))
     return m + torch.log(sum_exp)
 
-output_folder = 'beta-vae'
+output_folder = 'VAEAnirudhm'
 if 'SLURM_JOB_ID' in os.environ:
     output_folder += '-{0}'.format(os.environ['SLURM_JOB_ID'])
 
@@ -130,7 +130,7 @@ class VAE(nn.Module):
         z = z.view(h.size(0), self.z_dim, 1, 1)
         logits = self.decoder(z)
 
-        return logits, mu, log_var
+        return logits, mu, log_var, z
 
     def sample(self, z):
         return self.decoder(z)
@@ -159,15 +159,21 @@ for epoch in range(50):
     for i, (images, _) in enumerate(data_loader):
 
         images = to_var(images)
-        logits, mu, log_var = vae(images)
+        reconst, mu, log_var, z = vae(images)
+
+        # just add this one if statement to do the Anirudhm
+        if i != 0:
+            reconst, mu, log_var, z = vae(reconst)
+
+
 
         # Compute reconstruction loss and kl divergence
         # For kl_divergence, see Appendix B in the paper or http://yunjey47.tistory.com/43
         if args.obs == 'normal':
             # QKFIX: We assume here that the image is in B&W
-            reconst_loss = F.mse_loss(F.sigmoid(logits), images, size_average=False)
+            reconst_loss = F.mse_loss(F.sigmoid(reconst), images, size_average=False)
         elif args.obs == 'bernoulli':
-            reconst_loss = F.binary_cross_entropy_with_logits(logits, images, size_average=False)
+            reconst_loss = F.binary_cross_entropy_with_logits(reconst, images, size_average=False)
         else:
             raise ValueError('Argument `obs` must be in [normal, bernoulli]')
 
@@ -203,10 +209,11 @@ for epoch in range(50):
                      reconst_loss.data[0], kl_divergence.data[0]))
 
     # Save the reconstructed images
-    reconst_logits, _, _ = vae(fixed_x)
+    reconst_logits, _, _, z = vae(fixed_x)
     reconst_grid = torchvision.utils.make_grid(F.sigmoid(reconst_logits).data,
         normalize=True, scale_each=True)
     writer.add_image('vae/reconstruction', reconst_grid, epoch)
+    writer.add_embedding(z,label_img=reconst_logits)
 
     # Save the checkpoint
     state = {
