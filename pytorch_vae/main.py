@@ -162,7 +162,7 @@ for epoch in range(50):
         reconst, mu, log_var, z = vae(images)
 
         # just add this one if statement to do the Anirudhm
-        if i != 0:
+        if epoch != 0:
             reconst, mu, log_var, z = vae(reconst)
 
 
