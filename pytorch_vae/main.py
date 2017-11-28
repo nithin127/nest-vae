@@ -213,7 +213,7 @@ for epoch in range(50):
     reconst_grid = torchvision.utils.make_grid(F.sigmoid(reconst_logits).data,
         normalize=True, scale_each=True)
     writer.add_image('vae/reconstruction', reconst_grid, epoch)
-    writer.add_embedding(z)
+    #writer.add_embedding(z)
 
     # Save the checkpoint
     state = {
