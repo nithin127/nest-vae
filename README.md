@@ -13,7 +13,7 @@ python main.py
 
 <<In the following instructions, replace <yourname> with “sai” >>
 
-Git instructions
+```Git instructions
 
 git clone https://github.com/nithin127/nest-vae
 cd nest-vae
@@ -55,5 +55,5 @@ Now, python main.py in the /nest-vae/tristan/pytorch_tutorial_vae in your earlie
 
 python main.py
 
-
+```
 
