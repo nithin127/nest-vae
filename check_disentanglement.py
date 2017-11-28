@@ -21,7 +21,7 @@ else:
 
 ckpts = [file for file in os.listdir('./.saves/beta-vae/') if file[-5:]=='.ckpt']
 ckpt_name = './.saves/beta-vae/beta-vae_%d.ckpt' % (len(ckpts),)
-ckpt = torch.load(state, ckpt_name)
+ckpt = torch.load(ckpt_name)
 print('Checkpoint loaded: {}'.format(ckpt_name))
 
 
@@ -30,7 +30,9 @@ vae = VAE()
 vae.load_state_dict(ckpt['model'])
 
 # Writing the images for disentanglement
-writer = SummaryWriter('./.logs/beta-vae')
+if not os.path.exists('./.logs/visualize/'):
+            os.makedirs('./.logs/visualize/')
+writer = SummaryWriter('./.logs/visualize/')
 
 z_dim = vae.z_dim
 n_images = 10
