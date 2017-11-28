@@ -118,16 +118,22 @@ for epoch in range(50):
         #print(log_var.size())
         for lol in range(100):
             logvar_vec = log_var[lol,:]
+            logvar2_vec = 1/logvar_vec
             logvar_mat = torch.diag(log_var[lol,:])
+            varmat = torch.exp(logvar_mat)
+            chol = Variable(torch.potrf(varmat.data))
+            varmat_inv = Variable(torch.potri(chol.data))
+            #print(varmat_inv)
             mean_vec = mu[lol,:]
             #logvar_mat = torch.diag(logvar_mat)
             #print("logvar_mat size is")
             #print(logvar_mat)
             kl_divergence = torch.sum(0.5 * torch.matmul((mean_vec ** 2 + torch.exp(logvar_vec) - logvar_vec - 1), beta.unsqueeze(1)))
+            jensen = torch.sum(0.5 * (-2 + torch.exp(logvar_vec + logvar2_vec) + mean_vec* varmat_inv *mean_vec + mean_vec ** 2 ))
             if lol == 0:
-                total_loss = reconst_loss + kl_divergence
+                total_loss = reconst_loss + jensen
             else:
-                total_loss = total_loss + reconst_loss + kl_divergence
+                total_loss = total_loss + reconst_loss + jensen
         #kl_divergence = torch.sum(0.5 * torch.matmul((mu ** 2 + torch.exp(log_var) + torch.exp(log_var2) - log_var - 1),
         #    beta.unsqueeze(1)))
         #print("size of mu is")
@@ -139,7 +145,7 @@ for epoch in range(50):
         # Backprop + Optimize
         #total_loss = reconst_loss + kl_divergence
         #if epoch % 3 == 0:
-        #    total_loss = kl_divergence
+        #  total_loss = kl_divergence
         #else:
         #    total_loss = reconst_loss
         optimizer.zero_grad()
