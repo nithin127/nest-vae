@@ -4,7 +4,7 @@ import argparse
 
 # QKFIX: Add the parent path to PYTHONPATH
 import sys
-sys.path.insert(0, 'tristan')
+#sys.path.insert(0, 'tristan')
 
 import torch
 import torch.nn as nn
@@ -14,7 +14,7 @@ from torch.autograd import Variable
 import torchvision
 from datasets.dsprites import DSprites
 from torchvision import datasets, transforms
-
+from sklearn.manifold import TSNE
 from tensorboardX import SummaryWriter
 
 parser = argparse.ArgumentParser(description='VAE')
@@ -155,11 +155,12 @@ fixed_grid = torchvision.utils.make_grid(fixed_x, normalize=True, scale_each=Tru
 writer.add_image('vae/original', fixed_grid, 0)
 fixed_x = to_var(fixed_x)
 
-for epoch in range(50):
+for epoch in range(1):
     for i, (images, _) in enumerate(data_loader):
 
         images = to_var(images)
         reconst, mu, log_var, z = vae(images)
+
 
         # just add this one if statement to do the Anirudhm
         if epoch != 0:
@@ -207,13 +208,17 @@ for epoch in range(50):
                    "Reconst Loss: %.4f, KL Div: %.7f"
                    %(epoch + 1, 50, i + 1, iter_per_epoch, total_loss.data[0],
                      reconst_loss.data[0], kl_divergence.data[0]))
+        if i == 0:
+            break
 
     # Save the reconstructed images
     reconst_logits, _, _, z = vae(fixed_x)
     reconst_grid = torchvision.utils.make_grid(F.sigmoid(reconst_logits).data,
         normalize=True, scale_each=True)
     writer.add_image('vae/reconstruction', reconst_grid, epoch)
-    #writer.add_embedding(z)
+    #z_tsne = TSNE(n_components=3).fit_transform(z.data.numpy()[:,:,0,0])
+    writer.add_embedding(z.data[:,:,0,0], global_step=epoch)
+
 
     # Save the checkpoint
     state = {
