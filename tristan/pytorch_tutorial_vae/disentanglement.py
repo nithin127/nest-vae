@@ -152,7 +152,7 @@ interpolations = (eye * interpolation).astype(np.float32)
 
 # Loop over the examples to get an image per example
 for i in range(args.num_images):
-    latent_interpolation = fixed_z[i].data.numpy() + interpolations
+    latent_interpolation = fixed_z[i].cpu().data.numpy() + interpolations
     latent_interpolation = to_var(torch.from_numpy(latent_interpolation))
     latent_interpolation = latent_interpolation.view(-1, vae.z_dim, 1, 1)
 
