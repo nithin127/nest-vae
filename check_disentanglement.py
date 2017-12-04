@@ -14,7 +14,7 @@ from main import VAE
 
 
 # Getting the most recent checkpoint
-if os.path.exists('./.saves/beta-vae/'):
+if os.path.exists('./.logs/beta-vae/'):
     print('Great. Directory exists')
 else:
     raise('Please correct the Directory info in the file check_disentanglement.py')
@@ -49,5 +49,5 @@ for i in range(z_dim):
     reconst_grid = torchvision.utils.make_grid(F.sigmoid(reconst_logits).data,
         normalize=True, scale_each=True)
     writer.add_image('beta-vae/feature_{}'.format(i), reconst_grid, epoch)
-    
+
 
