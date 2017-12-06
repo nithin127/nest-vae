@@ -61,6 +61,8 @@ if __name__ == '__main__':
 
     from transforms import RandomMask
     from datasets.dsprites import DSprites
+    from datasets.reconstruction import Reconstruction
+
     import torchvision
     from torchvision import transforms
     from torch.autograd import Variable
@@ -69,15 +71,18 @@ if __name__ == '__main__':
         RandomMask(),
         transforms.ToTensor()
     ])
-    dataset = DSprites(root='./data/dsprites', transform=transform, download=True)
+    dataset = DSprites(root='./data/dsprites', download=True)
+    dataset = Reconstruction(dataset=dataset, transform=transform,
+        target_transform=transforms.ToTensor())
 
     data_loader = torch.utils.data.DataLoader(dataset=dataset,
-        batch_size=100, shuffle=True)
+        batch_size=10, shuffle=True)
 
     model = DAE()
 
-    images, _ = next(iter(data_loader))
-    images = Variable(images)
-    code = model(images)
+    noisy_images, images = next(iter(data_loader))
 
-    print code.size()
+    # images = Variable(images)
+    # code = model(images)
+
+    # print code.size()
