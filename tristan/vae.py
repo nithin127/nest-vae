@@ -19,6 +19,7 @@ from datasets import DSprites, Reconstruction
 
 from models.vae_dsprites import VAE
 from utils.torch_utils import to_var
+from utils.io_utils import get_latest_checkpoint
 
 
 parser = argparse.ArgumentParser(description='VAE')
@@ -34,6 +35,8 @@ parser.add_argument('--beta', type=float, default=1, metavar='N',
 parser.add_argument('--obs', type=str, default='normal',
                     help='Type of the observation model (in [normal, '
                     'bernoulli], default: normal)')
+parser.add_argument('--pretrained', type=str, default=None,
+                    help='Path to pretrained model')
 
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='Disables CUDA training')
@@ -64,6 +67,11 @@ data_loader = torch.utils.data.DataLoader(dataset=dataset,
 model = VAE()
 if args.cuda:
     model.cuda()
+if args.pretrained is not None:
+    with open(get_latest_checkpoint(args.pretrained), 'r') as f:
+        state_dict = torch.load(f)
+        state_dict = state_dict['model']
+    model.load(state_dict)
 writer = SummaryWriter('./.logs/{0}'.format(args.output_folder))
 
 # Optimizer

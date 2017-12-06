@@ -20,6 +20,10 @@ def decoder_block(input_filters, output_filters,
         nn.BatchNorm2d(output_filters),
         nn.ELU()))
 
+def load_module(state_dict, module_name):
+    return (dict((k, v) for k, v in state_dict.items()
+            if k.startswith(module_name)))
+
 class VAE(nn.Module):
 
     def __init__(self):
@@ -46,6 +50,13 @@ class VAE(nn.Module):
             decoder_block(64, 32),
             decoder_block(32, 32),
             nn.ConvTranspose2d(32, 1, kernel_size=4, stride=2, padding=1))
+
+    def load(self, state_dict):
+        encoder_state_dict = load_module(state_dict, 'encoder')
+        self.encoder.load_state_dict(encoder_state_dict)
+
+        decoder_state_dict = load_module(state_dict, 'decoder')
+        self.decoder.load_state_dict(decoder_state_dict)
 
     def reparametrize(self, mu, log_var):
         """"z = mean + eps * sigma where eps is sampled from N(0, 1)."""
