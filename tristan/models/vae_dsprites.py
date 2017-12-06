@@ -35,10 +35,23 @@ class VAE(nn.Module):
             encoder_block(32, 64),
             encoder_block(64, 64))
 
-        self.encoder_params = nn.Linear(1024, 2 * 10)
+        self.encoder_ffwd = nn.Sequential(
+            nn.Linear(1024, 256),
+            nn.BatchNorm1d(256),
+            nn.ELU(),
+            nn.Linear(256, 256),
+            nn.BatchNorm1d(256),
+            nn.ELU(),
+            nn.Linear(256, 2 * 10))
 
         self.decoder_ffwd = nn.Sequential(
-            nn.Linear(10, 1024),
+            nn.Linear(10, 256),
+            nn.BatchNorm1d(256),
+            nn.ELU(),
+            nn.Linear(256, 256),
+            nn.BatchNorm1d(256),
+            nn.ELU(),
+            nn.Linear(256, 1024),
             nn.BatchNorm1d(1024),
             nn.ELU())
 
@@ -66,7 +79,7 @@ class VAE(nn.Module):
     def forward(self, x):
         h = self.encoder(x)
         h = h.view(h.size(0), 1024)
-        params = self.encoder_params(h)
+        params = self.encoder_ffwd(h)
         mu, log_var = torch.chunk(params, 2, dim=1)
 
         z = self.reparametrize(mu, log_var)
