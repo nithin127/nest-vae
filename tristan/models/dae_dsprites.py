@@ -1,7 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.autograd import Variable
 
 def encoder_block(input_filters, output_filters,
           kernel_size=4, stride=2):
