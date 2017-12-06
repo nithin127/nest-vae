@@ -35,10 +35,7 @@ class VAE(nn.Module):
             encoder_block(32, 64),
             encoder_block(64, 64))
 
-        self.encoder_mean = nn.Linear(1024, 10)
-        self.encoder_logvar = nn.Sequential(
-            nn.Linear(1024, 10),
-            nn.Softplus())
+        self.encoder_params = nn.Linear(1024, 2 * 10)
 
         self.decoder_ffwd = nn.Sequential(
             nn.Linear(10, 1024),
@@ -69,7 +66,8 @@ class VAE(nn.Module):
     def forward(self, x):
         h = self.encoder(x)
         h = h.view(h.size(0), 1024)
-        mu, log_var = self.encoder_mean(h), self.encoder_logvar(h)
+        params = self.encoder_params(h)
+        mu, log_var = torch.chunk(params, 2, dim=1)
 
         z = self.reparametrize(mu, log_var)
         z = self.decoder_ffwd(z)
