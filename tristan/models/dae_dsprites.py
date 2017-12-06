@@ -54,35 +54,3 @@ class DAE(nn.Module):
         z = self.decoder(z)
 
         return z
-
-if __name__ == '__main__':
-    import sys
-    sys.path.insert(0, 'tristan')
-
-    from transforms import RandomMask
-    from datasets.dsprites import DSprites
-    from datasets.reconstruction import Reconstruction
-
-    import torchvision
-    from torchvision import transforms
-    from torch.autograd import Variable
-
-    transform = transforms.Compose([
-        RandomMask(),
-        transforms.ToTensor()
-    ])
-    dataset = DSprites(root='./data/dsprites', download=True)
-    dataset = Reconstruction(dataset=dataset, transform=transform,
-        target_transform=transforms.ToTensor())
-
-    data_loader = torch.utils.data.DataLoader(dataset=dataset,
-        batch_size=10, shuffle=True)
-
-    model = DAE()
-
-    noisy_images, images = next(iter(data_loader))
-
-    # images = Variable(images)
-    # code = model(images)
-
-    # print code.size()
