@@ -101,7 +101,7 @@ while steps < args.num_steps:
 
         if (steps > 0) and (steps % args.log_interval == 0):
             # Save the reconstructed images
-            logits = model(fixed_x)
+            logits, _, _ = model(fixed_x)
             grid = torchvision.utils.make_grid(F.sigmoid(logits).data,
                 normalize=True, scale_each=True)
             writer.add_image('reconstruction', grid, steps)
