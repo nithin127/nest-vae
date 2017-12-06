@@ -96,16 +96,18 @@ while steps < args.num_steps:
             reconst_loss = F.binary_cross_entropy_with_logits(logits, images, size_average=False)
         else:
             raise ValueError('Argument `obs` must be in [normal, bernoulli]')
-        
+
         kl_divergence = torch.sum(0.5 * args.beta * (mu ** 2 + torch.exp(log_var) - log_var - 1))
         loss = reconst_loss + kl_divergence
-
 
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 
         writer.add_scalar('loss', loss.data[0], steps)
+        writer.add_scalar('reconst_loss', reconst_loss.data[0], steps)
+        writer.add_scalar('kl_divergence', kl_divergence.data[0], steps)
+
         writer.add_histogram('mu', mu.data, steps)
         writer.add_histogram('log_var', log_var.data, steps)
 
