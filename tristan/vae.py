@@ -106,6 +106,8 @@ while steps < args.num_steps:
         optimizer.step()
 
         writer.add_scalar('loss', loss.data[0], steps)
+        writer.add_histogram('mu', mu.data, steps)
+        writer.add_histogram('log_var', log_var.data, steps)
 
         if (steps > 0) and (steps % args.log_interval == 0):
             # Save the reconstructed images
