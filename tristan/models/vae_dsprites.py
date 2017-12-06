@@ -21,7 +21,7 @@ def decoder_block(input_filters, output_filters,
         nn.ELU()))
 
 def load_module(state_dict, module_name):
-    return (dict((k, v) for k, v in state_dict.items()
+    return (dict((k.replace(module_name, ''), v) for k, v in state_dict.items()
             if k.startswith(module_name)))
 
 class VAE(nn.Module):
@@ -52,10 +52,10 @@ class VAE(nn.Module):
             nn.ConvTranspose2d(32, 1, kernel_size=4, stride=2, padding=1))
 
     def load(self, state_dict):
-        encoder_state_dict = load_module(state_dict, 'encoder')
+        encoder_state_dict = load_module(state_dict, 'encoder.')
         self.encoder.load_state_dict(encoder_state_dict)
 
-        decoder_state_dict = load_module(state_dict, 'decoder')
+        decoder_state_dict = load_module(state_dict, 'decoder.')
         self.decoder.load_state_dict(decoder_state_dict)
 
     def reparametrize(self, mu, log_var):
