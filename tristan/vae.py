@@ -16,6 +16,7 @@ from tensorboardX import SummaryWriter
 
 from transforms import RandomMask
 from datasets import DSprites, Reconstruction
+from datasets.celeba import CelebA
 
 from models.vae_dsprites import VAE
 from utils.torch_utils import to_var
@@ -57,14 +58,16 @@ if not os.path.exists('./.saves/{0}'.format(args.output_folder)):
     os.makedirs('./.saves/{0}'.format(args.output_folder))
 
 # Data loading
-dataset = DSprites(root='./data/dsprites',
-    transform=transforms.ToTensor(), download=True)
+# dataset = DSprites(root='./data/dsprites',
+#     transform=transforms.ToTensor(), download=True)
+dataset = CelebA(root='./data/celeba',
+    transform=transforms.ToTensor())
 
 data_loader = torch.utils.data.DataLoader(dataset=dataset,
     batch_size=args.batch_size, shuffle=True)
 
 # Model
-model = VAE()
+model = VAE(num_channels=3)
 if args.cuda:
     model.cuda()
 if args.pretrained is not None:
@@ -98,8 +101,9 @@ while steps < args.num_steps:
             raise ValueError('Argument `obs` must be in [normal, bernoulli]')
 
         # beta = args.beta * float(steps - 10000) / 10000.
-        beta = args.beta * float(steps // 1000) / 20.
-        beta = min(args.beta, max(0., beta))
+        # beta = args.beta * float(steps // 1000) / 20.
+        # beta = min(args.beta, max(0., beta))
+        beta = args.beta
         
         kl_divergence = 0.5 * beta * torch.sum(mu ** 2 + torch.exp(log_var) - log_var - 1)
         kl_divergence /= args.batch_size * 64 * 64
