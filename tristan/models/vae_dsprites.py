@@ -26,11 +26,12 @@ def load_module(state_dict, module_name):
 
 class VAE(nn.Module):
 
-    def __init__(self):
+    def __init__(self, num_channels=1):
         super(VAE, self).__init__()
+        self.num_channels = num_channels
         
         self.encoder = nn.Sequential(
-            encoder_block(1, 32),
+            encoder_block(num_channels, 32),
             encoder_block(32, 32),
             encoder_block(32, 64),
             encoder_block(64, 64))
@@ -59,7 +60,7 @@ class VAE(nn.Module):
             decoder_block(64, 64),
             decoder_block(64, 32),
             decoder_block(32, 32),
-            nn.ConvTranspose2d(32, 1, kernel_size=4, stride=2, padding=1))
+            nn.ConvTranspose2d(32, num_channels, kernel_size=4, stride=2, padding=1))
 
     def load(self, state_dict):
         encoder_state_dict = load_module(state_dict, 'encoder.')
