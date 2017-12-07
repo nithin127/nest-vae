@@ -26,9 +26,10 @@ def load_module(state_dict, module_name):
 
 class VAE(nn.Module):
 
-    def __init__(self, num_channels=1):
+    def __init__(self, num_channels=1, zdim=10):
         super(VAE, self).__init__()
         self.num_channels = num_channels
+        self.zdim = zdim
         
         self.encoder = nn.Sequential(
             encoder_block(num_channels, 32),
@@ -43,10 +44,10 @@ class VAE(nn.Module):
             nn.Linear(256, 256),
             nn.BatchNorm1d(256),
             nn.ELU(),
-            nn.Linear(256, 2 * 10))
+            nn.Linear(256, 2 * zdim))
 
         self.decoder_ffwd = nn.Sequential(
-            nn.Linear(10, 256),
+            nn.Linear(zdim, 256),
             nn.BatchNorm1d(256),
             nn.ELU(),
             nn.Linear(256, 256),
