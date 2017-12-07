@@ -70,7 +70,7 @@ class VAE(nn.Module):
 
     def reparametrize(self, mu, log_var):
         """"z = mean + eps * sigma where eps is sampled from N(0, 1)."""
-        eps = Variable(mu.data.new(*mu.size()).normal_())
+        eps = Variable(mu.data.new(*mu.size()).normal_(), requires_grad=False)
         z = mu + eps * torch.exp(0.5 * log_var) # 0.5 to convert var to std
 
         return z
