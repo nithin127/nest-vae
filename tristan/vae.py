@@ -67,7 +67,7 @@ data_loader = torch.utils.data.DataLoader(dataset=dataset,
     batch_size=args.batch_size, shuffle=True)
 
 # Model
-model = VAE(num_channels=3)
+model = VAE(num_channels=3, zdim=32)
 if args.cuda:
     model.cuda()
 if args.pretrained is not None:
