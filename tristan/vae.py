@@ -97,7 +97,9 @@ while steps < args.num_steps:
         else:
             raise ValueError('Argument `obs` must be in [normal, bernoulli]')
 
-        kl_divergence = torch.sum(0.5 * args.beta * (mu ** 2 + torch.exp(log_var) - log_var - 1))
+        beta = args.beta * float(steps - 10000) / 10000.
+        beta = min(args.beta, max(0., beta))
+        kl_divergence = 0.5 * beta * torch.sum(mu ** 2 + torch.exp(log_var) - log_var - 1)
         loss = reconst_loss + kl_divergence
 
         optimizer.zero_grad()
@@ -107,6 +109,7 @@ while steps < args.num_steps:
         writer.add_scalar('loss', loss.data[0], steps)
         writer.add_scalar('reconst_loss', reconst_loss.data[0], steps)
         writer.add_scalar('kl_divergence', kl_divergence.data[0], steps)
+        writer.add_scalar('beta', beta, steps)
 
         writer.add_histogram('mu', mu.data, steps)
         writer.add_histogram('log_var', log_var.data, steps)
