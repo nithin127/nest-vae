@@ -91,15 +91,19 @@ while steps < args.num_steps:
 
         if args.obs == 'normal':
             # QKFIX: We assume here that the image is in B&W
-            reconst_loss = F.mse_loss(F.sigmoid(logits), images, size_average=False)
+            reconst_loss = F.mse_loss(F.sigmoid(logits), images)
         elif args.obs == 'bernoulli':
-            reconst_loss = F.binary_cross_entropy_with_logits(logits, images, size_average=False)
+            reconst_loss = F.binary_cross_entropy_with_logits(logits, images)
         else:
             raise ValueError('Argument `obs` must be in [normal, bernoulli]')
 
-        beta = args.beta * float(steps - 10000) / 10000.
+        # beta = args.beta * float(steps - 10000) / 10000.
+        beta = args.beta * float(steps // 1000) / 20.
         beta = min(args.beta, max(0., beta))
+        
         kl_divergence = 0.5 * beta * torch.sum(mu ** 2 + torch.exp(log_var) - log_var - 1)
+        kl_divergence /= args.batch_size * 64 * 64
+
         loss = reconst_loss + kl_divergence
 
         optimizer.zero_grad()
