@@ -83,7 +83,6 @@ optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
 
 # Fixed input for Tensorboard
 fixed_x, _ = next(iter(data_loader))
-fixed_x *= 255.
 fixed_grid = torchvision.utils.make_grid(fixed_x, normalize=True, scale_each=True)
 writer.add_image('original', fixed_grid, 0)
 fixed_x = to_var(fixed_x, args.cuda)
@@ -91,7 +90,7 @@ fixed_x = to_var(fixed_x, args.cuda)
 steps = 0
 while steps < args.num_steps:
     for images, _ in data_loader:
-        images = to_var(images * 255., args.cuda)
+        images = to_var(images, args.cuda)
         logits, mu, log_var = model(images)
 
         if args.obs == 'normal':
