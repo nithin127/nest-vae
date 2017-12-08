@@ -86,7 +86,7 @@ class DSprites(data.Dataset):
         with open(file_path, 'rb') as f:
             raw_dataset = np.load(f)
             training_set = (
-                torch.ByteTensor(raw_dataset['imgs']),
+                255 * torch.ByteTensor(raw_dataset['imgs']),
                 torch.ByteTensor(raw_dataset['latents_classes'])
             )
 
