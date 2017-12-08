@@ -125,8 +125,8 @@ while steps < args.num_steps:
         writer.add_histogram('mu', mu.data, steps)
         writer.add_histogram('log_var', log_var.data, steps)
 
-        writer.add_image('batch', torchvision.utils.make_grid(images.data,
-            normalize=True, scale_each=True), steps)
+        # writer.add_image('batch', torchvision.utils.make_grid(images.data,
+        #     normalize=True, scale_each=True), steps)
 
         if (steps > 0) and (steps % args.log_interval == 0):
             # Save the reconstructed images
