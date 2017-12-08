@@ -8,4 +8,4 @@ source activate deleutri
 
 # Run the script
 # python tristan/pytorch_tutorial_vae/main.py $@
-python tristan/vae.py $@
+python tristan/metric.py $@
