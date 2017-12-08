@@ -72,11 +72,13 @@ if args.cuda:
 with open(get_latest_checkpoint(args.load), 'r') as f:
     state_dict = torch.load(f)
     state_dict = state_dict['model']
-vae.load_state_dict(state_dict['model'])
+vae.load_state_dict(state_dict)
 vae.eval()
 writer = SummaryWriter('./.logs/{0}'.format(args.output_folder))
 
 model = nn.Linear(vae.zdim, batch_sampler.num_factors)
+if args.cuda:
+    model.cuda()
 criterion = nn.CrossEntropyLoss()
 optimizer = torch.optim.Adagrad(model.parameters(), lr=1e-2)
 
@@ -122,6 +124,6 @@ for images, targets in data_loader:
             torch.save(state, './.saves/{0}/{0}_{1:d}.ckpt'.format(
                 args.output_folder, steps))
 
-            steps += 1
-            if steps >= args.num_steps:
-                break
+        steps += 1
+        if steps >= args.num_steps:
+            break
