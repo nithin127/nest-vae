@@ -102,16 +102,11 @@ while steps < args.num_steps:
         else:
             raise ValueError('Argument `obs` must be in [normal, bernoulli]')
         reconst_loss /= args.batch_size
-
-        # beta = args.beta * float(steps - 10000) / 10000.
-        # beta = args.beta * float(steps // 1000) / 20.
-        # beta = min(args.beta, max(0., beta))
-        beta = args.beta
         
-        kl_divergence = 0.5 * beta * torch.sum(mu ** 2 + torch.exp(log_var) - log_var - 1, dim=1)
-        # kl_divergence /= args.batch_size
+        kl_divergence = 0.5 * args.beta * torch.sum(mu ** 2 + torch.exp(log_var) - log_var - 1, dim=1)
+        kl_divergence /= args.batch_size
 
-        loss = reconst_loss + torch.mean(kl_divergence)
+        loss = reconst_loss + kl_divergence
 
         optimizer.zero_grad()
         loss.backward()
@@ -120,13 +115,9 @@ while steps < args.num_steps:
         writer.add_scalar('loss', loss.data[0], steps)
         writer.add_scalar('reconst_loss', reconst_loss.data[0], steps)
         writer.add_scalar('kl_divergence', kl_divergence.data[0], steps)
-        writer.add_scalar('beta', beta, steps)
 
         writer.add_histogram('mu', mu.data, steps)
         writer.add_histogram('log_var', log_var.data, steps)
-
-        # writer.add_image('batch', torchvision.utils.make_grid(images.data,
-        #     normalize=True, scale_each=True), steps)
 
         if (steps > 0) and (steps % args.log_interval == 0):
             # Save the reconstructed images
