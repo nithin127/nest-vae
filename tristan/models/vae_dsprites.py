@@ -77,6 +77,14 @@ class VAE(nn.Module):
 
         return z
 
+    def encode(self, x):
+        h = self.encoder(x)
+        h = h.view(h.size(0), 1024)
+        params = self.encoder_ffwd(h)
+        mu, _ = torch.chunk(params, 2, dim=1)
+
+        return mu
+
     def forward(self, x):
         h = self.encoder(x)
         h = h.view(h.size(0), 1024)
