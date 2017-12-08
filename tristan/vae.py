@@ -18,7 +18,7 @@ from transforms import RandomMask
 from datasets import DSprites, Reconstruction
 from datasets.celeba import CelebA
 
-from models.vae_dsprites import VAE
+from models.vae_dsprites import VAE, VAEFlatten
 from utils.torch_utils import to_var
 from utils.io_utils import get_latest_checkpoint
 
@@ -67,7 +67,7 @@ data_loader = torch.utils.data.DataLoader(dataset=dataset,
     batch_size=args.batch_size, shuffle=True)
 
 # Model
-model = VAE(num_channels=1, zdim=10)
+model = VAEFlatten(num_channels=1, zdim=10)
 # model = VAE(num_channels=3, zdim=32)
 if args.cuda:
     model.cuda()
