@@ -2,6 +2,25 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 
+def weights_init(m):
+    classname = m.__class__.__name__
+    if classname.find('Conv') != -1:
+        weight_shape = list(m.weight.data.size())
+        fan_in = np.prod(weight_shape[1:4])
+        fan_out = np.prod(weight_shape[2:4]) * weight_shape[0]
+        w_bound = np.sqrt(6. / (fan_in + fan_out))
+        m.weight.data.normal_(-w_bound, w_bound)
+        if m.bias is not None:
+            m.bias.data.fill_(0)
+    elif classname.find('Linear') != -1:
+        weight_shape = list(m.weight.data.size())
+        fan_in = weight_shape[1]
+        fan_out = weight_shape[0]
+        w_bound = np.sqrt(6. / (fan_in + fan_out))
+        m.weight.data.normal_(-w_bound, w_bound)
+        if m.bias is not None:
+            m.bias.data.fill_(0)
+
 def encoder_block(input_filters, output_filters,
           kernel_size=4, stride=2):
     return (nn.Sequential(
@@ -62,6 +81,8 @@ class VAE(nn.Module):
             decoder_block(64, 32),
             decoder_block(32, 32),
             nn.ConvTranspose2d(32, num_channels, kernel_size=4, stride=2, padding=1))
+
+        self.apply(weights_init)
 
     def load(self, state_dict):
         encoder_state_dict = load_module(state_dict, 'encoder.')
