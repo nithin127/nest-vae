@@ -4,11 +4,11 @@ from torch.autograd import Variable
 
 def weights_init(module):
     if isinstance(module, nn.Conv2d):
-        nn.init.xavier_normal(module.weight.data)
+        nn.init.xavier_uniform(module.weight.data, gain=3.)
         if module.bias is not None:
             module.bias.data.fill_(0)
     elif isinstance(module, nn.Linear):
-        nn.init.xavier_normal(module.weight.data)
+        nn.init.xavier_uniform(module.weight.data, gain=3.)
         if module.bias is not None:
             module.bias.data.fill_(0)
 
