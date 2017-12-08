@@ -58,16 +58,17 @@ if not os.path.exists('./.saves/{0}'.format(args.output_folder)):
     os.makedirs('./.saves/{0}'.format(args.output_folder))
 
 # Data loading
-# dataset = DSprites(root='./data/dsprites',
-#     transform=transforms.ToTensor(), download=True)
-dataset = CelebA(root='./data/celeba',
-    transform=transforms.ToTensor())
+dataset = DSprites(root='./data/dsprites',
+    transform=transforms.ToTensor(), download=True)
+# dataset = CelebA(root='./data/celeba',
+#     transform=transforms.ToTensor())
 
 data_loader = torch.utils.data.DataLoader(dataset=dataset,
     batch_size=args.batch_size, shuffle=True)
 
 # Model
-model = VAE(num_channels=3, zdim=32)
+model = VAE(num_channels=1, zdim=10)
+# model = VAE(num_channels=3, zdim=32)
 if args.cuda:
     model.cuda()
 if args.pretrained is not None:
@@ -94,11 +95,12 @@ while steps < args.num_steps:
 
         if args.obs == 'normal':
             # QKFIX: We assume here that the image is in B&W
-            reconst_loss = F.mse_loss(F.sigmoid(logits), images)
+            reconst_loss = F.mse_loss(F.sigmoid(logits), images, size_average=False)
         elif args.obs == 'bernoulli':
-            reconst_loss = F.binary_cross_entropy_with_logits(logits, images)
+            reconst_loss = F.binary_cross_entropy_with_logits(logits, images, size_average=False)
         else:
             raise ValueError('Argument `obs` must be in [normal, bernoulli]')
+        reconst_loss /= args.batch_size
 
         # beta = args.beta * float(steps - 10000) / 10000.
         # beta = args.beta * float(steps // 1000) / 20.
@@ -106,7 +108,7 @@ while steps < args.num_steps:
         beta = args.beta
         
         kl_divergence = 0.5 * beta * torch.sum(mu ** 2 + torch.exp(log_var) - log_var - 1)
-        kl_divergence /= args.batch_size * 64 * 64
+        kl_divergence /= args.batch_size
 
         loss = reconst_loss + kl_divergence
 
