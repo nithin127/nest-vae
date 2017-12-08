@@ -38,6 +38,8 @@ parser.add_argument('--obs', type=str, default='normal',
                     'bernoulli], default: normal)')
 parser.add_argument('--pretrained', type=str, default=None,
                     help='Path to pretrained model')
+parser.add_argument('--C', type=float, default=None,
+                    help='Parameter C, in nats, for improved beta-VAE')
 
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='Disables CUDA training')
@@ -47,6 +49,8 @@ parser.add_argument('--output-folder', type=str, default='vae',
                     help='Name of the output folder (default: vae)')
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
+if args.C is not None:
+    args.beta = 1.
 
 torch.manual_seed(args.seed)
 if args.cuda:
@@ -105,7 +109,13 @@ while steps < args.num_steps:
         kl_divergence = 0.5 * args.beta * torch.sum(mu ** 2 + torch.exp(log_var) - log_var - 1)
         kl_divergence /= args.batch_size
 
-        loss = reconst_loss + kl_divergence
+        if args.C is not None:
+            C = min(args.C * float(steps) / 100000, args.C)
+            gamma = 1000
+            loss = reconst_loss + gamma * torch.abs(kl_divergence - C)
+            writer.add_scalar('C', C, steps)
+        else:
+            loss = reconst_loss + kl_divergence
 
         optimizer.zero_grad()
         loss.backward()
