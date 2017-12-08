@@ -2,10 +2,6 @@ import os
 import argparse
 import numpy as np
 
-# QKFIX: Add the parent path to PYTHONPATH
-import sys
-sys.path.insert(0, 'tristan')
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
