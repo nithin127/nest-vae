@@ -102,7 +102,7 @@ while steps < args.num_steps:
             raise ValueError('Argument `obs` must be in [normal, bernoulli]')
         reconst_loss /= args.batch_size
         
-        kl_divergence = 0.5 * args.beta * torch.sum(mu ** 2 + torch.exp(log_var) - log_var - 1, dim=1)
+        kl_divergence = 0.5 * args.beta * torch.sum(mu ** 2 + torch.exp(log_var) - log_var - 1)
         kl_divergence /= args.batch_size
 
         loss = reconst_loss + kl_divergence
