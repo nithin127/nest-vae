@@ -10,8 +10,8 @@ import torchvision
 from torchvision import transforms
 from tensorboardX import SummaryWriter
 
-from transforms import RandomMask
 from datasets import DSprites, Reconstruction
+from datasets.transforms import RandomMask
 
 from models.dae_dsprites import DAE
 from utils.torch_utils import to_var

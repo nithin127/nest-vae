@@ -10,7 +10,6 @@ import torchvision
 from torchvision import transforms
 from tensorboardX import SummaryWriter
 
-from transforms import RandomMask
 from datasets import DSprites, Reconstruction
 from datasets.celeba import CelebA
 
