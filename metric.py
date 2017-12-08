@@ -85,7 +85,7 @@ for images, targets in data_loader:
     latents = vae.encode(images)
 
     z1, z2 = torch.chunk(latents, 2, dim=0)
-    diff = torch.sum(torch.abs(z1 - z2), dim=0)
+    diff = torch.mean(torch.abs(z1 - z2), dim=0)
     diffs.append(diff.data)
 
     common_factors = np.all(targets.numpy(), axis=0)
