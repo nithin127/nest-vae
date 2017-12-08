@@ -1,5 +1,6 @@
 import h5py
 import numpy as np
+import random
 
 class FactorSampler(object):
 
@@ -15,7 +16,11 @@ class FactorSampler(object):
     def __iter__(self):
         while (self.max_iter is None) or (self._iter < self.max_iter):
             for index in np.random.permutation(self.num_factors):
-                factor = self.factors['factor/{0:d}'.format(index)]
+                factor_type = self.factors['factor/{0:d}'.format(index)]
+                factor_value = random.choice(list(factor_type))
+                factor = self.factors['factor/{0:d}/{1:d}'.format(
+                    index, factor_value)]
+
                 indices = np.random.choice(len(factor), self.batch_size)
                 batch = [factor[index] for index in indices]
                 self._iter += 1
