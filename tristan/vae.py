@@ -67,7 +67,7 @@ data_loader = torch.utils.data.DataLoader(dataset=dataset,
     batch_size=args.batch_size, shuffle=True)
 
 # Model
-model = VAEFlatten(num_channels=1, zdim=10)
+model = VAE(num_channels=1, zdim=10)
 # model = VAE(num_channels=3, zdim=32)
 if args.cuda:
     model.cuda()
@@ -107,10 +107,10 @@ while steps < args.num_steps:
         # beta = min(args.beta, max(0., beta))
         beta = args.beta
         
-        kl_divergence = 0.5 * beta * torch.sum(mu ** 2 + torch.exp(log_var) - log_var - 1)
-        kl_divergence /= args.batch_size
+        kl_divergence = 0.5 * beta * torch.sum(mu ** 2 + torch.exp(log_var) - log_var - 1, dim=1)
+        # kl_divergence /= args.batch_size
 
-        loss = reconst_loss + kl_divergence
+        loss = reconst_loss + torch.mean(kl_divergence)
 
         optimizer.zero_grad()
         loss.backward()
