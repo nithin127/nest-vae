@@ -40,7 +40,7 @@ class VAE(nn.Module):
         super(VAE, self).__init__()
         self.num_channels = num_channels
         self.zdim = zdim
-        
+
         self.encoder = nn.Sequential(
             encoder_block(num_channels, 32),
             encoder_block(32, 32),
@@ -108,4 +108,4 @@ class VAE(nn.Module):
         z = z.view(z.size(0), 64, 4, 4)
         logits = self.decoder(z)
 
-        return logits, mu, log_var
+        return logits, mu, log_var, z

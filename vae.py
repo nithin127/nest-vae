@@ -16,7 +16,8 @@ from datasets.celeba import CelebA
 from models.vae_dsprites import VAE
 from utils.torch_utils import to_var
 from utils.io_utils import get_latest_checkpoint
-
+from matplotlib import pyplot as plt
+from sklearn.manifold import TSNE
 
 parser = argparse.ArgumentParser(description='VAE')
 parser.add_argument('--batch-size', type=int, default=100, metavar='N',
@@ -42,6 +43,8 @@ parser.add_argument('--seed', type=int, default=7691, metavar='S',
                     help='Random seed (default: 7691)')
 parser.add_argument('--output-folder', type=str, default='vae',
                     help='Name of the output folder (default: vae)')
+parser.add_argument('--anirudh', action='store_true', default=False,
+                    help='does anirudth algorithm')
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
 if args.C is not None:
@@ -81,17 +84,18 @@ writer = SummaryWriter('./.logs/{0}'.format(args.output_folder))
 optimizer = torch.optim.Adam(model.parameters(), lr=5e-4)
 
 # Fixed input for Tensorboard
-fixed_x, _ = next(iter(data_loader))
+fixed_x, fixed_label = next(iter(data_loader))
 fixed_grid = torchvision.utils.make_grid(fixed_x, normalize=True, scale_each=True)
 writer.add_image('original', fixed_grid, 0)
 fixed_x = to_var(fixed_x, args.cuda)
 
 steps = 0
 while steps < args.num_steps:
-    for images, _ in data_loader:
+    for images, labels in data_loader:
         images = to_var(images, args.cuda)
-        logits, mu, log_var = model(images)
-
+        logits, mu, log_var, z = model(images)
+        if args.anirudh:
+            logits, mu, log_var, z = vae(logits.detach())
         if args.obs == 'normal':
             # QKFIX: We assume here that the image is in B&W
             reconst_loss = F.mse_loss(F.sigmoid(logits), images, size_average=False)
@@ -100,7 +104,7 @@ while steps < args.num_steps:
         else:
             raise ValueError('Argument `obs` must be in [normal, bernoulli]')
         reconst_loss /= args.batch_size
-        
+
         kl_divergence = 0.5 * args.beta * torch.sum(mu ** 2 + torch.exp(log_var) - log_var - 1)
         kl_divergence /= args.batch_size
 
@@ -125,10 +129,16 @@ while steps < args.num_steps:
 
         if (steps > 0) and (steps % args.log_interval == 0):
             # Save the reconstructed images
-            logits, _, _ = model(fixed_x)
+            logits, _, _, z = model(fixed_x)
             grid = torchvision.utils.make_grid(F.sigmoid(logits).data,
                 normalize=True, scale_each=True)
             writer.add_image('reconstruction', grid, steps)
+            z_tsne = TSNE(n_components=2).fit_transform(z.data.numpy()[:,:,0,0])
+            plt.scatter(z_tsne[:,0],z_tsne[:,1],c=fixed_label.numpy())
+            directory = "./tsnes/%s/%s"%(output_folder,args.dataset)
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+            plt.savefig(directory + "/" + "tsne_%i" % epoch)
 
             # Save the checkpoint
             state = {
