@@ -13,7 +13,9 @@ from tensorboardX import SummaryWriter
 from datasets import DSprites, Reconstruction
 from datasets.celeba import CelebA
 
-from models.vae_dsprites import VAE
+from models.vae_dsprites import VAE as VAE64
+from models.vae_mnist import VAE as VAE28
+
 from utils.torch_utils import to_var
 from utils.io_utils import get_latest_checkpoint
 from matplotlib import pyplot as plt
@@ -36,9 +38,13 @@ parser.add_argument('--pretrained', type=str, default=None,
                     help='Path to pretrained model')
 parser.add_argument('--C', type=float, default=None,
                     help='Parameter C, in nats, for improved beta-VAE')
+parser.add_argument('--dataset', type=str, default='dsprites',
+                    help='Dataset to train the VAE on (default: dsprites)')
 
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='Disables CUDA training')
+parser.add_argument('--no-tsne', action='store_true', default=False,
+                    help='Disables TSNE')
 parser.add_argument('--seed', type=int, default=7691, metavar='S',
                     help='Random seed (default: 7691)')
 parser.add_argument('--output-folder', type=str, default='vae',
@@ -60,17 +66,30 @@ if not os.path.exists('./.saves/{0}'.format(args.output_folder)):
     os.makedirs('./.saves/{0}'.format(args.output_folder))
 
 # Data loading
-dataset = DSprites(root='./data/dsprites',
-    transform=transforms.ToTensor(), download=True)
-# dataset = CelebA(root='./data/celeba',
-#     transform=transforms.ToTensor())
+if args.dataset == 'fashion-mnist':
+    dataset = datasets.FashionMNIST(root='./data/fashion-mnist',
+        train=True, transform=transforms.ToTensor(), download=True)
+    model = VAE28(num_channels=1, zdim=10)
+elif args.dataset == 'mnist':
+    dataset = datasets.MNIST(root='./data/mnist',
+        train=True, transform=transforms.ToTensor(), download=True)
+    model = VAE28(num_channels=1, zdim=10)
+elif args.dataset == 'dsprites':
+    dataset = DSprites(root='./data/dsprites',
+        transform=transforms.ToTensor(), download=True)
+    model = VAE64(num_channels=1, zdim=10)
+elif args.dataset == 'celeba':
+    dataset = CelebA(root='./data/celeba',
+        transform=transforms.ToTensor())
+    model = VAE64(num_channels=3, zdim=32)
+    args.obs = 'normal'
+else:
+    raise ValueError('The `dataset` argument must be fashion-mnist, mnist, dsprites or celeba')
 
 data_loader = torch.utils.data.DataLoader(dataset=dataset,
     batch_size=args.batch_size, shuffle=True)
 
 # Model
-model = VAE(num_channels=1, zdim=10)
-# model = VAE(num_channels=3, zdim=32)
 if args.cuda:
     model.cuda()
 if args.pretrained is not None:
@@ -91,7 +110,7 @@ fixed_x = to_var(fixed_x, args.cuda)
 
 steps = 0
 while steps < args.num_steps:
-    for images, labels in data_loader:
+    for images, _ in data_loader:
         images = to_var(images, args.cuda)
         logits, mu, log_var, z = model(images)
         if args.anirudh:
@@ -133,12 +152,14 @@ while steps < args.num_steps:
             grid = torchvision.utils.make_grid(F.sigmoid(logits).data,
                 normalize=True, scale_each=True)
             writer.add_image('reconstruction', grid, steps)
-            z_tsne = TSNE(n_components=2).fit_transform(z.data.numpy()[:,:,0,0])
-            plt.scatter(z_tsne[:,0],z_tsne[:,1],c=fixed_label.numpy())
-            directory = "./tsnes/%s/%s"%(output_folder,args.dataset)
-            if not os.path.exists(directory):
-                os.makedirs(directory)
-            plt.savefig(directory + "/" + "tsne_%i" % epoch)
+
+            if not args.no_tsne:
+                z_tsne = TSNE(n_components=2).fit_transform(z.data.numpy()[:,:,0,0])
+                plt.scatter(z_tsne[:,0], z_tsne[:,1], c=fixed_label.numpy())
+                directory = os.path.join("./tsnes", output_folder, args.dataset)
+                if not os.path.exists(directory):
+                    os.makedirs(directory)
+                plt.savefig(os.path.join(directory, "tsne_%i" % steps))
 
             # Save the checkpoint
             state = {
