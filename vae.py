@@ -7,7 +7,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 import torchvision
-from torchvision import transforms
+from torchvision import datasets, transforms
 from tensorboardX import SummaryWriter
 
 from datasets import DSprites, Reconstruction
@@ -18,8 +18,6 @@ from models.vae_mnist import VAE as VAE28
 
 from utils.torch_utils import to_var
 from utils.io_utils import get_latest_checkpoint
-from matplotlib import pyplot as plt
-from sklearn.manifold import TSNE
 
 parser = argparse.ArgumentParser(description='VAE')
 parser.add_argument('--batch-size', type=int, default=100, metavar='N',
@@ -59,6 +57,10 @@ if args.C is not None:
 torch.manual_seed(args.seed)
 if args.cuda:
     torch.cuda.manual_seed(args.seed)
+
+if not args.no_tsne:
+    from matplotlib import pyplot as plt
+    from sklearn.manifold import TSNE
 
 if 'SLURM_JOB_ID' in os.environ:
     args.output_folder += '-{0}'.format(os.environ['SLURM_JOB_ID'])

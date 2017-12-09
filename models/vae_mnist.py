@@ -38,9 +38,9 @@ class VAE(nn.Module):
         self.encoder = nn.Sequential(
             encoder_block(num_channels, 32, kernel_size=4, stride=2),
             encoder_block(32, 64, kernel_size=4, stride=2),
-            encoder_block(32, 128, kernel_size=5))
+            encoder_block(64, 128, kernel_size=5))
 
-        self.encoder_ffwd = nn.Linear(128, zdim)
+        self.encoder_ffwd = nn.Linear(128, 2 * zdim)
 
         self.decoder = nn.Sequential(
             decoder_block(zdim, 128, kernel_size=3),
