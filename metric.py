@@ -15,7 +15,7 @@ from datasets import DSprites, Reconstruction
 from datasets.celeba import CelebA
 from datasets.sampler import FactorSampler
 
-from models.vae_dsprites import VAE
+from models.vae_dsprites import VAE as VAE64
 from utils.torch_utils import to_var
 from utils.io_utils import get_latest_checkpoint
 
@@ -31,6 +31,8 @@ parser.add_argument('--log-interval', type=int, default=200, metavar='N',
                     'in Tensorboard (default: 200)')
 parser.add_argument('--load', type=str, default=None,
                     help='Save folder for the model')
+parser.add_argument('--dataset', type=str, default='dsprites',
+                    help='Dataset to train the VAE on (default: dsprites)')
 
 parser.add_argument('--no-cuda', action='store_true', default=False,
                     help='Disables CUDA training')
@@ -50,18 +52,26 @@ if 'SLURM_JOB_ID' in os.environ:
 if not os.path.exists('./.saves/{0}'.format(args.output_folder)):
     os.makedirs('./.saves/{0}'.format(args.output_folder))
 
-# dataset = DSprites(root='./data/dsprites',
-#     transform=transforms.ToTensor(), download=True)
-dataset = CelebA(root='./data/celeba',
-    transform=transforms.ToTensor())
+# Data loading
+if args.dataset == 'dsprites':
+    dataset = DSprites(root='./data/dsprites',
+        transform=transforms.ToTensor(), download=True)
+    batch_sampler = FactorSampler('data/dsprites/processed/factors.hdf5',
+        batch_size=2 * args.batch_size2)
+    vae = VAE64(num_channels=1, zdim=10)
+elif args.dataset == 'celeba':
+    dataset = CelebA(root='./data/celeba',
+        transform=transforms.ToTensor())
+    batch_sampler = FactorSampler('data/celeba/processed/factors.hdf5',
+        batch_size=2 * args.batch_size2)
+    vae = VAE64(num_channels=3, zdim=32)
+else:
+    raise ValueError('The `dataset` argument must be dsprites or celeba')
 
-batch_sampler = FactorSampler('data/celeba/processed/factors.hdf5',
-    batch_size=2 * args.batch_size2)
 data_loader = torch.utils.data.DataLoader(dataset=dataset,
     batch_sampler=batch_sampler)
 
 # Model
-vae = VAE(num_channels=3, zdim=32)
 if args.cuda:
     vae.cuda()
 with open(get_latest_checkpoint(args.load), 'r') as f:
