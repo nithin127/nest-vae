@@ -80,6 +80,8 @@ vae.load_state_dict(state_dict)
 vae.eval()
 
 metric = nn.Linear(vae.zdim, batch_sampler.num_factors)
+if args.cuda:
+    metric.cuda()
 with open(get_latest_checkpoint(args.metric), 'r') as f:
     state_dict = torch.load(f)
     state_dict = state_dict['model']
@@ -106,14 +108,17 @@ for _ in range(args.num_steps):
         if len(diffs) == args.batch_size:
             diffs = to_var(torch.stack(diffs, dim=0), args.cuda)
             factors = to_var(torch.from_numpy(np.asarray(factors)).long(), args.cuda)
-            logits = model(diffs)
+            logits = metric(diffs)
 
             _, predictions = torch.max(logits, dim=1)
             correct_prediction = (predictions == factors)
             accuracy = correct_prediction.data.cpu().numpy().mean()
             accs.append(accuracy)
+            print accuracy
 
             break
 
 print 'Mean'
 print np.mean(accs)
+print 'Std'
+print np.std(accs)
