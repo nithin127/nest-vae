@@ -87,7 +87,8 @@ for images, targets in data_loader:
     diff = torch.mean(torch.abs(z1 - z2), dim=0)
     diffs.append(diff.data)
 
-    common_factors = np.all(targets.numpy(), axis=0)
+    targets_np = targets.numpy()
+    common_factors = np.all(targets_np == targets_np[0], axis=0)
     p = common_factors.astype(np.float32) / np.sum(common_factors)
     factor = np.random.choice(len(common_factors), p=p)
     factors.append(factor)
