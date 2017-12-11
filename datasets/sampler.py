@@ -18,7 +18,7 @@ class FactorSampler(object):
             for index in np.random.permutation(self.num_factors):
                 factor_type = self.factors['factor/{0:d}'.format(index)]
                 factor_value = random.choice(list(factor_type))
-                factor = self.factors['factor/{0:d}/{1:d}'.format(
+                factor = self.factors['factor/{0:d}/{1}'.format(
                     index, factor_value)]
 
                 indices = np.random.choice(len(factor), self.batch_size)
