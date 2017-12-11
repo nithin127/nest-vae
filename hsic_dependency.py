@@ -80,7 +80,7 @@ vae.load_state_dict(ckpt['model'])
 # Get the latent representation for each example
 fixed_z = vae.encode(fixed_x)
 
-HSIC_array = get_HSIC(z_array)
+HSIC_array = get_HSIC(fixed_z.data.cpu().numpy())
 print('The mean value of the HSIC_array is {}'.format(np.mean(HSIC_array)))
 
 result_path = os.path.join('.logs', 'hsic_dependency', args.save_dir, '{}.txt'.format(args.dataset))
