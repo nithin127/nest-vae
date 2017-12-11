@@ -85,7 +85,7 @@ model = nn.Linear(vae.zdim, batch_sampler.num_factors)
 if args.cuda:
     model.cuda()
 criterion = nn.CrossEntropyLoss()
-optimizer = torch.optim.Adagrad(model.parameters(), lr=1e-2)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
 diffs, factors = [], []
 steps = 0
