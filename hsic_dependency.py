@@ -48,19 +48,19 @@ args.cuda = not args.no_cuda and torch.cuda.is_available()
 if args.dataset == 'fashion-mnist':
     dataset = datasets.FashionMNIST(root='./data/fashion-mnist',
         train=True, transform=transforms.ToTensor(), download=True)
-    model = VAE28(num_channels=1, zdim=10)
+    vae = VAE28(num_channels=1, zdim=10)
 elif args.dataset == 'mnist':
     dataset = datasets.MNIST(root='./data/mnist',
         train=True, transform=transforms.ToTensor(), download=True)
-    model = VAE28(num_channels=1, zdim=10)
+    vae = VAE28(num_channels=1, zdim=10)
 elif args.dataset == 'dsprites':
     dataset = DSprites(root='./data/dsprites',
         transform=transforms.ToTensor(), download=True)
-    model = VAE64(num_channels=1, zdim=10)
+    vae = VAE64(num_channels=1, zdim=10)
 elif args.dataset == 'celeba':
     dataset = CelebA(root='./data/celeba',
         transform=transforms.ToTensor())
-    model = VAE64(num_channels=3, zdim=32)
+    vae = VAE64(num_channels=3, zdim=32)
     args.obs = 'normal'
 else:
     raise ValueError('The `dataset` argument must be fashion-mnist, mnist, dsprites or celeba')
