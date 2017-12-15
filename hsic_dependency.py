@@ -31,6 +31,8 @@ from kernel import get_HSIC
 parser = argparse.ArgumentParser(description='Disentanglement')
 parser.add_argument('--save-dir', type=str,
                     help='Path to the save folder (subfolder of `.saves` by default)')
+parser.add_argument('--kernel', type=str,
+                    help='Type of kernel: Choose from Gaussian/Laplacian')
 parser.add_argument('--save-file', type=str, default=None, help='Checkpoint file')
 parser.add_argument('--num-images', type=int, default=100, metavar='N',
                     help='Number of images (default: 10)')
@@ -91,7 +93,7 @@ vae.load_state_dict(ckpt['model'])
 # Get the latent representation for each example
 fixed_z = vae.encode(fixed_x)
 
-HSIC_array = get_HSIC(fixed_z.data.cpu().numpy())
+HSIC_array = get_HSIC(fixed_z.data.cpu().numpy(), ktype=args.kernel)
 print('The mean value of the HSIC_array is {}'.format(np.mean(HSIC_array)))
 
 # result_path = os.path.join('.logs', 'hsic_dependency', args.save_dir, '{}.txt'.format(args.dataset))
