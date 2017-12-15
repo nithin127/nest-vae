@@ -4,7 +4,7 @@
 source $HOME/.bashrc
 
 # Activate the environment
-source activate deleutri
+# source activate deleutri
 
 # Run the script
-python vae.py $@
+python divergence_vae.py $@
