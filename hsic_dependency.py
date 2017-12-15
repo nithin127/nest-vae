@@ -32,7 +32,7 @@ parser = argparse.ArgumentParser(description='Disentanglement')
 parser.add_argument('--save-dir', type=str,
                     help='Path to the save folder (subfolder of `.saves` by default)')
 parser.add_argument('--save-file', type=str, default=None, help='Checkpoint file')
-parser.add_argument('--num-images', type=int, default=10, metavar='N',
+parser.add_argument('--num-images', type=int, default=100, metavar='N',
                     help='Number of images (default: 10)')
 parser.add_argument('--num-samples', type=int, default=11, metavar='N',
                     help='Number of samples (default: 11)')
@@ -75,12 +75,13 @@ if args.save_file is not None:
     filename = args.save_file
 else:
     filename = get_latest_checkpoint(args.save_dir)
-
-with open(filename, 'r') as f:
-    if args.cuda:
-        ckpt = torch.load(f)
-    else:
-        ckpt = torch.load(f, map_location=lambda storage, loc: storage)
+print(filename)
+#with open(filename, 'r') as f:
+#    if args.cuda:
+#        ckpt = torch.load(f)
+ #   else:
+ #       ckpt = torch.load(f, map_location=lambda storage, loc: storage)
+ckpt = torch.load(filename)
 
 if args.cuda:
     vae.cuda()
@@ -93,9 +94,9 @@ fixed_z = vae.encode(fixed_x)
 HSIC_array = get_HSIC(fixed_z.data.cpu().numpy())
 print('The mean value of the HSIC_array is {}'.format(np.mean(HSIC_array)))
 
-result_path = os.path.join('.logs', 'hsic_dependency', args.save_dir, '{}.txt'.format(args.dataset))
+# result_path = os.path.join('.logs', 'hsic_dependency', args.save_dir, '{}.txt'.format(args.dataset))
 
-with open(result_path, 'w') as f:
-    f.write('The HSIC array for {} is:\n'.format(HSIC_array))
-    f.write('The mean value of the HSIC_array is {}'.format(np.mean(HSIC_array)))
+# with open(result_path, 'w') as f:
+print('The HSIC array for {} is:\n'.format(HSIC_array))
+print('The mean value of the HSIC_array is {}'.format(np.mean(HSIC_array)))
 
