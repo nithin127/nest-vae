@@ -1,3 +1,9 @@
+<<<<<<< HEAD
+# nest-vae
+PGM projects
+
+Implementing the independece criteria for the latent variables
+=======
 # Basic VAE Example
 
 This is an improved implementation of the paper [Stochastic Gradient VB and the
@@ -52,3 +58,4 @@ python main.py
 
 ```
 
+>>>>>>> d0f85acb82ecb4a80636ec7d3341ca6db953b243

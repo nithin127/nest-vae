@@ -156,7 +156,7 @@ while steps < args.num_steps:
             writer.add_image('reconstruction', grid, steps)
 
             if not args.no_tsne:
-                z_tsne = TSNE(n_components=2).fit_transform(z.data.numpy()[:,:,0,0])
+                z_tsne = TSNE(n_components=2).fit_transform(z.data.cpu().numpy()[:,:,0,0])
                 plt.scatter(z_tsne[:,0], z_tsne[:,1], c=fixed_label.numpy())
                 directory = os.path.join("./tsnes", output_folder, args.dataset)
                 if not os.path.exists(directory):
