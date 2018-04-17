@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # nest-vae
 PGM projects
 
